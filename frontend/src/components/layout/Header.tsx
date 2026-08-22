@@ -4,8 +4,6 @@ import {
   Search,
   SlidersHorizontal,
   LogIn,
-  Moon,
-  Sun,
   Menu,
   X,
   GraduationCap,
@@ -14,7 +12,6 @@ import {
   LogOut,
   ChevronDown,
 } from 'lucide-react';
-import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 
@@ -29,7 +26,6 @@ export function Header({
   onFilterClick,
   searchValue = '',
 }: HeaderProps) {
-  const { theme, toggleTheme } = useTheme();
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -181,14 +177,7 @@ export function Header({
               </Button>
             )}
 
-            {/* Theme toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg text-slate-500 hover:text-navy hover:bg-slate-100 transition-colors"
-              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            >
-              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
+
 
             {/* Hamburger (mobile) */}
             <button

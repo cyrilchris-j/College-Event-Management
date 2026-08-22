@@ -53,11 +53,11 @@ export default {
           light: '#FEF2F2',
         },
         // Neutrals
-        background: '#F8FAFC',
-        card: '#FFFFFF',
-        border: '#E2E8F0',
-        'text-primary': '#132B5C',
-        'text-secondary': '#64748B',
+        background: 'var(--color-background)',
+        card: 'var(--color-card)',
+        border: 'var(--color-border)',
+        'text-primary': 'var(--color-text-primary)',
+        'text-secondary': 'var(--color-text-secondary)',
       },
       fontFamily: {
         poppins: ['Poppins', 'sans-serif'],
