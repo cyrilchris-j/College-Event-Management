@@ -1,20 +1,19 @@
 /**
  * admin.css
- * Admin portal specific CSS — dark premium theme tokens
+ * Admin portal specific CSS — Dark Glass Theme Tokens (No Golden Colors)
  */
 
 /* ─── Admin Dark Theme Tokens ──────────────────────────────────────────────── */
 :root {
-  --ad-bg:          #07111F;
-  --ad-surface:     #0D1B2A;
-  --ad-surface-2:   #101D2D;
-  --ad-elevated:    #142338;
+  --ad-bg:          #070D18;
+  --ad-surface:     #0D172A;
+  --ad-surface-2:   #111F36;
+  --ad-elevated:    #162744;
   --ad-border:      rgba(255,255,255,0.08);
   --ad-border-soft: rgba(255,255,255,0.05);
-  --ad-gold:        #C8A96B;
-  --ad-gold-dim:    rgba(200,169,107,0.15);
-  --ad-blue:        #315CFF;
-  --ad-blue-dim:    rgba(49,92,255,0.15);
+  --ad-blue:        #3B82F6;
+  --ad-blue-bright: #315CFF;
+  --ad-blue-dim:    rgba(59,130,246,0.15);
   --ad-violet:      #8B7CFF;
   --ad-violet-dim:  rgba(139,124,255,0.12);
   --ad-green:       #3CCB91;
@@ -52,11 +51,11 @@
   line-height: 1.15;
 }
 
-/* ─── Gold divider ─────────────────────────────────────────────────────── */
-.gold-divider {
+/* ─── Blue divider ─────────────────────────────────────────────────────── */
+.blue-divider {
   height: 1px;
-  background: linear-gradient(90deg, var(--ad-gold) 0%, transparent 100%);
-  opacity: 0.5;
+  background: linear-gradient(90deg, var(--ad-blue) 0%, transparent 100%);
+  opacity: 0.6;
   margin: 0.5rem 0;
 }
 
@@ -66,7 +65,7 @@
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--ad-gold);
+  color: var(--ad-blue);
 }
 
 /* ─── Surface card ─────────────────────────────────────────────────────────── */
@@ -133,39 +132,31 @@
   transition: background 0.15s;
 }
 .admin-table tbody tr:hover {
-  background: rgba(49,92,255,0.04);
+  background: rgba(59,130,246,0.06);
 }
 
-/* ─── Nav hover underline ─────────────────────────────────────────────────── */
+/* ─── Floating Header Navigation Tabs (No Underline, Vibrant Blue on Hover/Active) ── */
 .admin-nav-item {
-  position: relative;
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ad-text-2);
-  padding: 0.25rem 0;
+  padding: 0.5rem 0.875rem;
   cursor: pointer;
-  transition: color 0.2s;
-  letter-spacing: 0.01em;
+  transition: color 0.2s ease, transform 0.15s ease;
+  background: transparent;
+  border: none;
+  outline: none;
 }
-.admin-nav-item::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background: var(--ad-gold);
-  transition: width 0.25s ease;
-}
+
 .admin-nav-item:hover {
-  color: var(--ad-text);
+  color: #3B82F6; /* Bright vibrant blue on hover */
 }
-.admin-nav-item:hover::after,
-.admin-nav-item.active::after {
-  width: 100%;
-}
+
 .admin-nav-item.active {
-  color: var(--ad-text);
+  color: #3B82F6; /* Bright vibrant blue when active */
+  font-weight: 800;
 }
 
 /* ─── Drawer ──────────────────────────────────────────────────────────────── */
