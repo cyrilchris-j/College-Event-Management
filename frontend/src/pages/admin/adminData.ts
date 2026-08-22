@@ -212,7 +212,7 @@ export const ADMIN_EVENTS: AdminEvent[] = [
 export const ADMIN_ORGANIZERS: Organizer[] = [
   { id: 'org-1', name: 'Google Developer Student Club', type: 'Technical', events: 12, registrations: 1240, attendanceRate: 92, color: '#315CFF', initials: 'GD' },
   { id: 'org-2', name: 'CSE Association', type: 'Technical', events: 10, registrations: 1020, attendanceRate: 88, color: '#8B7CFF', initials: 'CA' },
-  { id: 'org-3', name: 'Code Club', type: 'Technical', events: 8, registrations: 980, attendanceRate: 88, color: '#3CCB91', initials: 'CC' },
+  { id: 'org-3', name: 'Code Club', type: 'Technical', events: 8, registrations: 980, attendanceRate: 88, color: '#3B82F6', initials: 'CC' },
   { id: 'org-4', name: 'Design Club', type: 'Creative', events: 6, registrations: 640, attendanceRate: 91, color: '#E6A84B', initials: 'DC' },
   { id: 'org-5', name: 'Placement Cell', type: 'Career', events: 5, registrations: 720, attendanceRate: 95, color: '#C8A96B', initials: 'PC' },
   { id: 'org-6', name: 'Cultural Committee', type: 'Cultural', events: 4, registrations: 890, attendanceRate: 94, color: '#E36D6D', initials: 'CC' },
@@ -248,22 +248,22 @@ export const CATEGORY_CHART_DATA = [
   { name: 'Workshop', value: 22, color: '#8B7CFF' },
   { name: 'Cultural', value: 15, color: '#E6A84B' },
   { name: 'Seminar', value: 12, color: '#C8A96B' },
-  { name: 'Exhibition', value: 8, color: '#3CCB91' },
+  { name: 'Exhibition', value: 8, color: '#38BDF8' },
   { name: 'Hackathon', value: 5, color: '#E36D6D' },
 ];
 
 export const ATTENDANCE_DATA = [
-  { event: 'Career Guidance', rate: 92, color: '#3CCB91' },
-  { event: 'Web Dev Bootcamp', rate: 85, color: '#3CCB91' },
+  { event: 'Career Guidance', rate: 92, color: '#3B82F6' },
+  { event: 'Web Dev Bootcamp', rate: 85, color: '#3B82F6' },
   { event: 'AI Workshop', rate: 79, color: '#E6A84B' },
   { event: 'Cultural Fest', rate: 76, color: '#E6A84B' },
   { event: 'Hackathon 2024', rate: 71, color: '#E36D6D' },
-  { event: 'Robotics Expo', rate: 84, color: '#3CCB91' },
+  { event: 'Robotics Expo', rate: 84, color: '#3B82F6' },
 ];
 
 // ── Status Config ──────────────────────────────────────────────────────────────
 export const EVENT_STATUS_CONFIG = {
-  Live:        { color: '#3CCB91', bg: 'rgba(60,203,145,0.1)',  border: 'rgba(60,203,145,0.25)' },
+  Live:        { color: '#3B82F6', bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)' },
   Open:        { color: '#315CFF', bg: 'rgba(49,92,255,0.1)',   border: 'rgba(49,92,255,0.25)' },
   'Almost Full': { color: '#E6A84B', bg: 'rgba(230,168,75,0.1)',  border: 'rgba(230,168,75,0.25)' },
   Full:        { color: '#E36D6D', bg: 'rgba(227,109,109,0.1)', border: 'rgba(227,109,109,0.25)' },
@@ -273,7 +273,7 @@ export const EVENT_STATUS_CONFIG = {
 export const CATEGORY_COLORS: Record<string, string> = {
   Technical:  '#315CFF',
   Hackathon:  '#8B7CFF',
-  Workshop:   '#3CCB91',
+  Workshop:   '#60A5FA',
   Seminar:    '#C8A96B',
   Cultural:   '#E6A84B',
   Exhibition: '#E36D6D',

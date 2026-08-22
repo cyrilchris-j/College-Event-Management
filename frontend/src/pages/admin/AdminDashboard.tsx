@@ -131,7 +131,7 @@ function MetricItem({
         {trend && (
           <div
             className="flex items-center gap-1 text-[11px] font-medium"
-            style={{ color: trendUp ? '#3CCB91' : '#E36D6D' }}
+            style={{ color: trendUp ? '#3B82F6' : '#E36D6D' }}
           >
             {trendUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             {trend}
@@ -515,7 +515,7 @@ export default function AdminDashboard() {
                     >
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <div className="live-dot" />
-                        <span className="text-xs font-bold tracking-widest" style={{ color: '#3CCB91' }}>LIVE</span>
+                        <span className="text-xs font-bold tracking-widest" style={{ color: '#3B82F6' }}>LIVE</span>
                       </div>
                       <p className="text-4xl font-bold font-inter mt-1" style={{ color: '#F7F8FA' }}>18</p>
                       <p className="text-xs mt-1" style={{ color: '#68778C' }}>Active Events</p>
@@ -659,7 +659,7 @@ export default function AdminDashboard() {
                                 <MiniProgress value={regPct} />
                               </div>
                             </td>
-                            <td><span className="text-sm font-bold" style={{ color: '#3CCB91' }}>{attPct}%</span></td>
+                            <td><span className="text-sm font-bold" style={{ color: '#3B82F6' }}>{attPct}%</span></td>
                             <td><StatusBadge status={event.status} /></td>
                             <td>
                               <button
@@ -720,7 +720,7 @@ export default function AdminDashboard() {
                           <td className="text-slate-400">{st.email || 'N/A'}</td>
                           <td className="font-bold text-blue-400">{st.eventsRegistered || 1} Events</td>
                           <td>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/30">
                               {st.status || 'Active'}
                             </span>
                           </td>
@@ -766,7 +766,7 @@ export default function AdminDashboard() {
                     <div className="space-y-2 text-xs text-slate-300 pt-2 border-t border-slate-800">
                       <div className="flex justify-between"><span className="text-slate-400">Total Events:</span> <span className="font-bold text-blue-400">{org.events || 0}</span></div>
                       <div className="flex justify-between"><span className="text-slate-400">Total Registrations:</span> <span className="font-bold text-white">{org.registrations || 0}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-400">Attendance Rate:</span> <span className="font-bold text-emerald-400">{org.attendanceRate || 100}%</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Attendance Rate:</span> <span className="font-bold text-blue-400">{org.attendanceRate || 100}%</span></div>
                     </div>
                   </SpotlightCard>
                 ))}
@@ -814,7 +814,7 @@ export default function AdminDashboard() {
                           <td className="font-mono font-bold text-blue-400">{reg.ticketCode}</td>
                           <td className="text-slate-400">{reg.registeredOn}</td>
                           <td>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${reg.attended ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${reg.attended ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' : 'bg-slate-800 text-slate-400'}`}>
                               {reg.attended ? 'Attended' : 'Not Attended'}
                             </span>
                           </td>
