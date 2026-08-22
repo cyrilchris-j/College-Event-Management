@@ -4,6 +4,14 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://college-event-management-d9y6.onrender.com/api/$1"
+    },
+    {
+      "source": "/health",
+      "destination": "https://college-event-management-d9y6.onrender.com/health"
+    },
+    {
       "source": "/(.*)",
       "destination": "/frontend/dist/index.html"
     }
