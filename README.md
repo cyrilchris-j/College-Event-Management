@@ -289,46 +289,52 @@ ALTER TABLE student_profiles ADD CONSTRAINT unique_student_roll_number UNIQUE (r
 
 ```
 CampusConnect/
-├── public/                     # Static assets, logos & favicon
-├── src/
-│   ├── app/
-│   │   ├── App.tsx             # Application root component
-│   │   ├── routes.tsx          # React Router route definitions
-│   │   └── providers.tsx       # Supabase Auth & Theme Context Providers
-│   ├── components/
-│   │   ├── layout/             # AppShell, Navbar, Footer, MobileNav
-│   │   ├── ui/                 # Buttons, Badges, Modals, StatCards, Tables
-│   │   ├── events/             # EventCard, EventGrid, EventFilterBar
-│   │   ├── tickets/            # DigitalTicket, TicketQR, TicketBadge
-│   │   ├── dashboard/          # MetricsGrid, CapacityBar, ParticipantTable
-│   │   └── scanner/            # CameraScanner, QRVerificationResult
-│   ├── features/
-│   │   ├── auth/               # Student & Staff login logic, session guard
-│   │   ├── events/             # Event CRUD, publishing & capacity logic
-│   │   ├── registration/       # Student ID generator, atomic booking
-│   │   └── attendance/         # QR token validation, idempotent check-in
-│   ├── lib/
-│   │   ├── supabase.ts         # Supabase client client configuration
-│   │   ├── validators.ts       # Form validation & error helpers
-│   │   └── formatters.ts       # Date, time & currency/metric formatters
-│   ├── pages/
-│   │   ├── HomePage.tsx        # Scrollable home page & event feed
-│   │   ├── EventDetailsPage.tsx# Event details & registration entry
-│   │   ├── RegisterPage.tsx    # Student registration & ID generation
-│   │   ├── TicketPage.tsx      # Mobile-first digital ticket
-│   │   ├── ScannerPage.tsx     # Student QR camera scanner
-│   │   ├── OrganizerPage.tsx   # Organiser dashboard & analytics
-│   │   ├── HallQRPage.tsx      # Event hall QR projector display
-│   │   └── AdminPage.tsx       # Staff account provisioning & oversight
-│   ├── types/
-│   │   └── database.ts         # TypeScript schema definitions
-│   ├── index.css               # Tailwind CSS base & design tokens
-│   └── main.tsx                # React DOM entry point
-├── .env.example                # Environment variables template
-├── package.json                # Project dependencies and scripts
-├── tailwind.config.js          # Tailwind CSS theme configuration
-├── tsconfig.json               # TypeScript compiler config
-└── vite.config.ts              # Vite configuration
+├── frontend/                     # Client-side React + TypeScript Application
+│   ├── public/                   # Static public assets
+│   │   └── assets/               # Logos, icons & imagery
+│   └── src/
+│       ├── components/           # Reusable UI component modules
+│       │   ├── dashboard/        # MetricsGrid, MetricCard, ParticipantTable
+│       │   ├── events/           # EventCard, EventGrid, CapacityBar
+│       │   ├── layout/           # AppShell, Navbar, Footer, MobileNav
+│       │   ├── scanner/          # CameraScanner, HallQRDisplay, VerificationBadge
+│       │   ├── tickets/          # DigitalTicket, TicketCard, TicketQR
+│       │   └── ui/               # Button, Input, Modal, Card, Badge, Table
+│       ├── context/              # React Context Providers (AuthContext, ThemeContext)
+│       ├── hooks/                # Custom React client hooks
+│       ├── pages/                # Page route views
+│       │   ├── admin/            # Admin staff-provisioning dashboard
+│       │   ├── organizer/        # Organiser event management & metrics
+│       │   ├── public/           # Scrollable HomePage & EventDetailsPage
+│       │   └── student/          # StudentLoginPage, MyRegistrationsPage, TicketPage
+│       ├── routes/               # Client-side route configuration & guards
+│       ├── services/             # API client fetchers & Supabase client
+│       ├── types/                # Frontend TypeScript models & interfaces
+│       └── utils/                # Date/time formatters, validators & helpers
+│
+├── backend/                      # Server-side API & Database Logic
+│   ├── config/                   # Environment & server configurations
+│   ├── controllers/              # Request handlers (Auth, Events, Attendance)
+│   ├── database/                 # Database schema definitions & migrations
+│   │   ├── migrations/           # SQL migration scripts (PostgreSQL / Supabase)
+│   │   └── seeds/                # Initial demo seeds (Admin, Organisers, Events)
+│   ├── middleware/               # Auth guards, role verification & rate-limiting
+│   ├── models/                   # Database entity models & schemas
+│   ├── routes/                   # API endpoint route declarations
+│   ├── services/                 # Backend business logic services
+│   │   ├── attendance/           # Idempotent check-in verification
+│   │   ├── auth/                 # Authentication & token verification
+│   │   ├── events/               # Event publishing & capacity verification
+│   │   ├── qr/                   # Cryptographic signed QR token generator
+│   │   └── registration/         # Atomic registration & ticket generation
+│   ├── types/                    # Backend TypeScript interfaces & DB types
+│   └── utils/                    # Hash generators, validators & response helpers
+│
+├── .env                          # Local environment secrets (ignored by git)
+├── .gitignore                    # Git ignore rules
+├── CampusConnect.md              # Revised Product Requirements Document
+├── campusconnect1.md             # Initial Product Requirements Document
+└── README.md                     # Project documentation & architecture plan
 ```
 
 ---
