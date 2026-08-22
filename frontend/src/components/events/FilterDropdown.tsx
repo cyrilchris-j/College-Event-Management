@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { ChevronDown, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { EventCategory, SortOption } from '@/types';
 
 const CATEGORIES: Array<EventCategory | 'All'> = [
@@ -10,12 +10,6 @@ const CATEGORIES: Array<EventCategory | 'All'> = [
   'Seminar',
   'Cultural',
   'Exhibition',
-];
-
-const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
-  { value: 'soonest', label: 'Soonest First' },
-  { value: 'most_registered', label: 'Most Registered' },
-  { value: 'most_available', label: 'Most Available' },
 ];
 
 interface FilterDropdownProps {
@@ -35,8 +29,8 @@ export function FilterDropdown({
   onClose,
   selectedCategory,
   onCategoryChange,
-  selectedSort,
-  onSortChange,
+  selectedSort: _selectedSort,
+  onSortChange: _onSortChange,
   onClear,
   hasActiveFilters,
   anchorRef,
@@ -114,33 +108,7 @@ export function FilterDropdown({
           </div>
         </fieldset>
 
-        {/* Sort */}
-        <fieldset>
-          <legend className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-            Sort By
-          </legend>
-          <div className="relative">
-            <select
-              value={selectedSort}
-              onChange={e => onSortChange(e.target.value as SortOption)}
-              className="w-full appearance-none px-3 py-2 text-sm text-navy bg-white border border-border
-                         rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500
-                         cursor-pointer"
-              aria-label="Sort events by"
-            >
-              {SORT_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={14}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              aria-hidden="true"
-            />
-          </div>
-        </fieldset>
+
       </div>
 
       {hasActiveFilters && (

@@ -7,6 +7,7 @@ import { HeroSection } from '@/components/HeroSection';
 import { EventList } from '@/components/events/EventList';
 import { FilterDropdown } from '@/components/events/FilterDropdown';
 import { useEvents } from '@/hooks/useEvents';
+import { BlurText } from '@/components/ui/BlurText';
 
 export function HomePage() {
   const {
@@ -29,9 +30,9 @@ export function HomePage() {
     filters.category !== 'All' ||
     filters.sort !== 'soonest';
 
-  const upcomingEvents = events
-    .filter(event => new Date(event.event_start).getTime() > Date.now())
-    .sort((a, b) => new Date(a.event_start).getTime() - new Date(b.event_start).getTime());
+  const recentEvents = [...events]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 3);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -165,19 +166,24 @@ export function HomePage() {
                 />
               </div>
 
-              {/* Upcoming Events */}
-              {!loading && upcomingEvents.length > 0 && (
+              {/* Centered Animated Recent Events Title */}
+              {!loading && recentEvents.length > 0 && (
+                <div className="flex justify-center items-center py-6 mt-10 mb-2">
+                  <BlurText
+                    text="Recent Events"
+                    delay={100}
+                    animateBy="letters"
+                    direction="top"
+                    className="text-3xl md:text-5xl font-extrabold text-white font-poppins tracking-tight"
+                  />
+                </div>
+              )}
+
+              {/* Recent Events */}
+              {!loading && recentEvents.length > 0 && (
                 <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={18} className="text-blue-600" aria-hidden="true" />
-                      <h2 className="text-base font-semibold font-poppins text-navy">
-                        Upcoming Events
-                      </h2>
-                    </div>
-                  </div>
                   <EventList
-                    events={upcomingEvents}
+                    events={recentEvents}
                     loading={loading}
                     error={error}
                     onClearFilters={refetch}

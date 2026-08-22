@@ -63,6 +63,8 @@ export default {
         poppins: ['Poppins', 'sans-serif'],
         inter: ['Inter', 'sans-serif'],
         sans: ['Inter', 'sans-serif'],
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        playfair: ['"Playfair Display"', 'Georgia', 'serif'],
       },
       fontSize: {
         'hero-xl': ['56px', { lineHeight: '1.1', fontWeight: '700' }],

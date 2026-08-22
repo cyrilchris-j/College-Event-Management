@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
-  SlidersHorizontal,
   LogIn,
   Menu,
   X,
@@ -23,7 +22,7 @@ interface HeaderProps {
 
 export function Header({
   onSearchChange,
-  onFilterClick,
+  onFilterClick: _onFilterClick,
   searchValue = '',
 }: HeaderProps) {
   const { user, profile, logout } = useAuth();
@@ -109,17 +108,7 @@ export function Header({
 
           {/* ── RIGHT: Actions ──────────────────────────────────────────── */}
           <div className="flex items-center gap-2 ml-auto">
-            {/* Filter */}
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<SlidersHorizontal size={14} />}
-              onClick={onFilterClick}
-              className="hidden md:inline-flex"
-              aria-label="Open filters"
-            >
-              Filter
-            </Button>
+
 
             {/* Login / User menu */}
             {user ? (
@@ -221,13 +210,7 @@ export function Header({
           className="md:hidden bg-white border-t border-border py-3 px-4 space-y-1"
           aria-label="Mobile navigation"
         >
-          <button
-            onClick={() => { onFilterClick?.(); setMobileOpen(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-navy rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            <SlidersHorizontal size={16} />
-            Filter Events
-          </button>
+
           {!user && (
             <button
               onClick={() => { navigate('/login'); setMobileOpen(false); }}
