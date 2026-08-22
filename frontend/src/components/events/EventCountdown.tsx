@@ -55,28 +55,28 @@ export function EventCountdown({ eventStart }: EventCountdownProps) {
 
       {/* Countdown Boxes */}
       <div className="flex items-center gap-3 justify-start">
-        {/* Days Box: Red */}
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-500 rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-red-400">
-          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none">{timeLeft.days}</span>
-          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-90 mt-1">Days</span>
+        {/* Days Box: Deep Navy */}
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#0B1329] rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-[#1E2D52]">
+          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none text-slate-100">{timeLeft.days}</span>
+          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-75 mt-1 text-slate-300">Days</span>
         </div>
 
-        {/* Hours Box: Orange */}
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-orange-500 rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-orange-400">
-          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none">{timeLeft.hours}</span>
-          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-90 mt-1">Hrs</span>
+        {/* Hours Box: Mid Navy */}
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#111C3A] rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-[#1E2D52]">
+          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none text-slate-100">{timeLeft.hours}</span>
+          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-75 mt-1 text-slate-300">Hrs</span>
         </div>
 
-        {/* Minutes Box: Yellow */}
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-amber-500 rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-amber-400">
-          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none">{timeLeft.minutes}</span>
-          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-90 mt-1">Mins</span>
+        {/* Minutes Box: Light Navy/Slate */}
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#1E2D52] rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-[#2B3E6C]">
+          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none text-slate-100">{timeLeft.minutes}</span>
+          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-75 mt-1 text-slate-300">Mins</span>
         </div>
 
-        {/* Seconds Box: Blue */}
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-sky-500 rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-sky-400">
-          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none">{timeLeft.seconds}</span>
-          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-90 mt-1">Secs</span>
+        {/* Seconds Box: Vibrant Blue Accent */}
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 rounded-xl shadow-lg flex flex-col items-center justify-center text-white relative overflow-hidden transition-all duration-300 hover:scale-105 border border-blue-400">
+          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none text-white">{timeLeft.seconds}</span>
+          <span className="text-[8px] sm:text-[9px] uppercase font-bold tracking-wider opacity-90 mt-1 text-blue-100">Secs</span>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, ArrowRight, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, SlidersHorizontal, X } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/HeroSection';
@@ -30,7 +30,7 @@ export function HomePage() {
     filters.category !== 'All' ||
     filters.sort !== 'soonest';
 
-  const recentEvents = [...events]
+  const upcomingEvents = [...events]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 3);
 
@@ -58,21 +58,27 @@ export function HomePage() {
 
             {/* ── ALL EVENTS & UPCOMING EVENTS (75%) ──────────────────── */}
             <div className="flex-1 min-w-0 space-y-8">
+              {/* Centered Animated All Events Title */}
+              {!loading && (
+                <div id="all-events-section" className="flex justify-center items-center py-6 mt-10 mb-2">
+                  <BlurText
+                    text="All Events"
+                    delay={100}
+                    animateBy="letters"
+                    direction="top"
+                    className="text-3xl md:text-5xl font-extrabold text-white font-poppins tracking-tight"
+                  />
+                </div>
+              )}
+
               {/* All Events */}
               <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
                 {/* Section header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                   <div className="flex items-center gap-2">
-                    <Calendar size={18} className="text-blue-600" aria-hidden="true" />
-                    <h2 className="text-base font-semibold font-poppins text-navy">
-                      All Events
-                    </h2>
                     {!loading && (
-                      <span
-                        className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700"
-                        aria-label={`${events.length} events shown`}
-                      >
-                        {events.length}
+                      <span className="text-xs font-semibold text-slate-500">
+                        Showing {events.length} events
                       </span>
                     )}
                   </div>
@@ -166,11 +172,11 @@ export function HomePage() {
                 />
               </div>
 
-              {/* Centered Animated Recent Events Title */}
-              {!loading && recentEvents.length > 0 && (
-                <div className="flex justify-center items-center py-6 mt-10 mb-2">
+              {/* Centered Animated Upcoming Events Title */}
+              {!loading && upcomingEvents.length > 0 && (
+                <div id="upcoming-events-section" className="flex justify-center items-center py-6 mt-10 mb-2">
                   <BlurText
-                    text="Recent Events"
+                    text="Upcoming Events"
                     delay={100}
                     animateBy="letters"
                     direction="top"
@@ -179,11 +185,11 @@ export function HomePage() {
                 </div>
               )}
 
-              {/* Recent Events */}
-              {!loading && recentEvents.length > 0 && (
+              {/* Upcoming Events */}
+              {!loading && upcomingEvents.length > 0 && (
                 <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
                   <EventList
-                    events={recentEvents}
+                    events={upcomingEvents}
                     loading={loading}
                     error={error}
                     onClearFilters={refetch}
