@@ -41,12 +41,12 @@ In the **Environment Variables** section on Vercel, add:
 | :--- | :--- | :--- |
 | `VITE_SUPABASE_URL` | `https://tuczdhtpuannsqxcubtj.supabase.co` | Your Supabase Project URL |
 | `VITE_SUPABASE_ANON_KEY` | *(Your Supabase Anon Key)* | From Supabase API Settings |
-| `VITE_API_BASE_URL` | `https://campusconnect-api.onrender.com` | Your Render Backend URL |
+| `VITE_API_BASE_URL` | `https://college-event-management-d9y6.onrender.com` | Your Render Backend URL |
 
 ### Step 4: Deploy & Verify
 1. Click **"Deploy"**.
 2. Vercel will build the SPA in ~45 seconds.
-3. Test your live Vercel URL (e.g., `https://campusconnect-rww8.vercel.app`).
+3. Test your live Vercel URL: [https://college-event-management-ashy.vercel.app/](https://college-event-management-ashy.vercel.app/)
 4. Refresh any sub-route (e.g. `/login`, `/organizer`) to verify that the `vercel.json` SPA rewrite rules work seamlessly without 404s.
 
 ---

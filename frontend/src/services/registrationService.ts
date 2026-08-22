@@ -1,86 +1,54 @@
 /**
  * registrationService.ts
  * All Supabase operations for event registrations and digital tickets.
- * Endpoints: registrations table, events capacity check
+ * Utilizes atomic database stored procedures and real-time query joins.
  */
 
 import { supabase } from './supabase';
-import type { Registration } from '@/types';
+import type { Registration, EventCategory } from '@/types';
 
 // ─── Registration Operations ──────────────────────────────────────────────────
 
 /**
- * POST /rest/v1/registrations
- * Atomically registers a student for an event.
- * Uses a database function to verify capacity and prevent duplicates.
- *
- * Supabase RPC: register_student_for_event(p_event_id, p_student_id)
+ * POST /rpc/register_student_for_event
+ * Atomically registers a student for an event via PostgreSQL stored procedure.
+ * Guarantees zero race conditions, enforces capacity limits, deadline validation,
+ * prevents duplicate registrations, and queues confirmation emails.
  */
 export async function registerForEvent(
   eventId: string,
   userId: string
 ): Promise<{ registration: Registration | null; error: string | null }> {
-  // Generate a unique ticket code
+  // Generate unique ticket code: CC-{EVENT_SHORT_ID}-{RANDOM}
   const ticketCode = `CC-${eventId.slice(0, 4).toUpperCase()}-${Math.random()
     .toString(36)
     .substring(2, 10)
     .toUpperCase()}`;
 
-  // Check capacity via Supabase
-  const { data: eventData, error: eventError } = await supabase
-    .from('events')
-    .select('capacity, registered_count')
-    .eq('id', eventId)
-    .single();
-
-  if (eventError) {
-    return { registration: null, error: 'Failed to fetch event details.' };
-  }
-
-  if (eventData.registered_count >= eventData.capacity) {
-    return { registration: null, error: 'This event is full. No seats available.' };
-  }
-
-  // Check for duplicate registration
-  const { data: existing } = await supabase
-    .from('registrations')
-    .select('id, ticket_code, status')
-    .eq('event_id', eventId)
-    .eq('student_id', userId)
-    .neq('status', 'cancelled')
-    .maybeSingle();
-
-  if (existing) {
-    return {
-      registration: null,
-      error: 'You are already registered for this event.',
-    };
-  }
-
-  // Insert registration
-  const { data, error } = await supabase
-    .from('registrations')
-    .insert({
-      event_id: eventId,
-      student_id: userId,
-      ticket_code: ticketCode,
-      status: 'registered',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    // Handle unique constraint violation (race condition)
-    if (error.code === '23505') {
-      return { registration: null, error: 'You are already registered for this event.' };
+  // Call atomic database RPC function
+  const { data: result, error: rpcError } = await supabase.rpc(
+    'register_student_for_event',
+    {
+      p_event_id: eventId,
+      p_student_id: userId,
+      p_ticket_code: ticketCode,
     }
-    return { registration: null, error: error.message };
+  );
+
+  if (rpcError) {
+    console.error('[registrationService] RPC error:', rpcError.message);
+    return { registration: null, error: rpcError.message };
   }
 
-  // Increment registered_count
-  await supabase.rpc('increment_registered_count', { event_id: eventId });
+  const res = result as { success: boolean; error?: string; registration_id?: string; ticket_code?: string };
 
-  return { registration: data as Registration, error: null };
+  if (!res.success) {
+    return { registration: null, error: res.error || 'Registration failed.' };
+  }
+
+  // Fetch the created registration with event details
+  const registration = await getRegistrationById(res.registration_id!);
+  return { registration, error: null };
 }
 
 /**
@@ -115,9 +83,9 @@ export async function getMyRegistrations(userId: string): Promise<Registration[]
   const { data, error } = await supabase
     .from('registrations')
     .select(`
-      id, event_id, student_id, ticket_code, status, registered_at,
+      id, event_id, student_id, ticket_code, qr_image_url, status, registered_at,
       events (
-        id, title, category, event_start, event_end, venue, banner_url, status
+        id, title, category, event_start, event_end, venue, banner_url, organizer_club, status
       )
     `)
     .eq('student_id', userId)
@@ -128,12 +96,39 @@ export async function getMyRegistrations(userId: string): Promise<Registration[]
     return [];
   }
 
-  return (data as Registration[]) ?? [];
+  const formatted: Registration[] = (data || []).map((r: any) => ({
+    id: r.id,
+    event_id: r.event_id,
+    student_id: r.student_id,
+    ticket_code: r.ticket_code,
+    status: r.status,
+    registered_at: r.registered_at,
+    event: r.events
+      ? {
+          id: r.events.id,
+          title: r.events.title,
+          description: '',
+          category: r.events.category as EventCategory,
+          event_start: r.events.event_start,
+          event_end: r.events.event_end,
+          venue: r.events.venue,
+          capacity: 0,
+          registered_count: 0,
+          banner_url: r.events.banner_url,
+          organizer_id: '',
+          organizer_name: r.events.organizer_club,
+          status: r.events.status,
+          created_at: '',
+        }
+      : undefined,
+  }));
+
+  return formatted;
 }
 
 /**
  * GET /rest/v1/registrations?id=eq.{registrationId}
- * Fetch a single registration by ID (for digital ticket).
+ * Fetch a single registration by ID (for digital ticket pass).
  */
 export async function getRegistrationById(
   registrationId: string
@@ -141,10 +136,10 @@ export async function getRegistrationById(
   const { data, error } = await supabase
     .from('registrations')
     .select(`
-      id, event_id, student_id, ticket_code, status, registered_at,
+      id, event_id, student_id, ticket_code, qr_image_url, status, registered_at,
       events (
         id, title, category, event_start, event_end, venue, banner_url,
-        organizer_id, capacity, registered_count
+        organizer_id, organizer_club, capacity, status
       )
     `)
     .eq('id', registrationId)
@@ -152,14 +147,41 @@ export async function getRegistrationById(
 
   if (error) {
     if (error.code === 'PGRST116') return null;
+    console.error('[registrationService] getRegistrationById error:', error.message);
     throw new Error(error.message);
   }
 
-  return data as Registration;
+  const reg: any = data;
+  return {
+    id: reg.id,
+    event_id: reg.event_id,
+    student_id: reg.student_id,
+    ticket_code: reg.ticket_code,
+    status: reg.status,
+    registered_at: reg.registered_at,
+    event: reg.events
+      ? {
+          id: reg.events.id,
+          title: reg.events.title,
+          description: '',
+          category: reg.events.category as EventCategory,
+          event_start: reg.events.event_start,
+          event_end: reg.events.event_end,
+          venue: reg.events.venue,
+          capacity: reg.events.capacity,
+          registered_count: 0,
+          banner_url: reg.events.banner_url,
+          organizer_id: reg.events.organizer_id,
+          organizer_name: reg.events.organizer_club,
+          status: reg.events.status,
+          created_at: '',
+        }
+      : undefined,
+  };
 }
 
 /**
- * PATCH /rest/v1/registrations?id=eq.{registrationId}
+ * POST /rest/v1/registrations?id=eq.{registrationId}
  * Cancel a registration.
  */
 export async function cancelRegistration(

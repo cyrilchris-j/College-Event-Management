@@ -25,6 +25,15 @@ const TicketPage = lazy(() =>
 );
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 
+// Organizer Portal Pages
+const OrganizerDashboard = lazy(() => import('@/pages/organizer/OrganizerDashboard').then(m => ({ default: m.OrganizerDashboard })));
+const CreateEventPage = lazy(() => import('@/pages/organizer/CreateEventPage').then(m => ({ default: m.CreateEventPage })));
+const ManageEventPage = lazy(() => import('@/pages/organizer/ManageEventPage').then(m => ({ default: m.ManageEventPage })));
+const OrganizerRegistrationsPage = lazy(() => import('@/pages/organizer/OrganizerRegistrationsPage').then(m => ({ default: m.OrganizerRegistrationsPage })));
+const OrganizerAttendancePage = lazy(() => import('@/pages/organizer/OrganizerAttendancePage').then(m => ({ default: m.OrganizerAttendancePage })));
+const OrganizerReportsPage = lazy(() => import('@/pages/organizer/OrganizerReportsPage').then(m => ({ default: m.OrganizerReportsPage })));
+
+
 // ── Page-level loading fallback ───────────────────────────────────────────────
 function PageLoader() {
   return (
@@ -85,6 +94,15 @@ export function AppRouter() {
 
           {/* Admin routes */}
           <Route path="/admin" element={<AdminDashboard />} />
+
+          {/* Organizer routes */}
+          <Route path="/organizer" element={<OrganizerDashboard />} />
+          <Route path="/organizer/events" element={<OrganizerDashboard />} />
+          <Route path="/organizer/events/create" element={<CreateEventPage />} />
+          <Route path="/organizer/events/:id" element={<ManageEventPage />} />
+          <Route path="/organizer/registrations" element={<OrganizerRegistrationsPage />} />
+          <Route path="/organizer/attendance" element={<OrganizerAttendancePage />} />
+          <Route path="/organizer/reports" element={<OrganizerReportsPage />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
