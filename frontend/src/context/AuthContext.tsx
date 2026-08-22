@@ -29,7 +29,7 @@ import type {
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
 interface AuthContextValue extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<{ error: string | null }>;
+  login: (credentials: LoginCredentials) => Promise<{ user: User | null; error: string | null }>;
   signup: (credentials: SignupCredentials) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
 }
@@ -104,16 +104,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const login = useCallback(
-    async (credentials: LoginCredentials): Promise<{ error: string | null }> => {
+    async (credentials: LoginCredentials): Promise<{ user: User | null; error: string | null }> => {
       setState(prev => ({ ...prev, loading: true }));
       const { user, error } = await signInWithEmail(credentials);
       if (error || !user) {
         setState(prev => ({ ...prev, loading: false }));
-        return { error: error ?? 'Login failed.' };
+        return { user: null, error: error ?? 'Login failed.' };
       }
       const profile: StudentProfile | null = await getStudentProfile(user.id);
       setState({ user, profile, loading: false, initialized: true });
-      return { error: null };
+      return { user, error: null };
     },
     []
   );

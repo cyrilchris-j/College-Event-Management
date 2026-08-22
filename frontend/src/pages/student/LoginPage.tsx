@@ -1,9 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, GraduationCap, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, GraduationCap, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getUserById } from '@/services/authService';
-import { supabase } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -19,7 +17,9 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(
-    isUnauthorized ? 'Access Restricted: Please sign in with your @ksrce.ac.in Organizer or Admin account to access this section.' : null
+    isUnauthorized
+      ? 'Access Restricted: Please sign in with your @ksrce.ac.in Organizer or Admin account to access this portal.'
+      : null
   );
 
   const handleSubmit = useCallback(
@@ -33,26 +33,32 @@ export function LoginPage() {
       }
 
       setLoading(true);
-      const { error: loginError } = await login({
+      const { user: loggedInUser, error: loginError } = await login({
         email: form.email,
         password: form.password,
       });
       setLoading(false);
 
-      if (loginError) {
-        setError(loginError);
+      if (loginError || !loggedInUser) {
+        setError(loginError || 'Invalid email or password.');
       } else {
-        // Fetch current user role for smart redirection
-        const { data: sessionData } = await supabase.auth.getSession();
-        const userId = sessionData.session?.user.id;
-        const profile = userId ? await getUserById(userId) : null;
+        // Smart Role-Based Redirection
+        const userRole = loggedInUser.role;
 
-        if (profile?.role === 'admin') {
-          navigate('/admin', { replace: true });
-        } else if (profile?.role === 'organizer') {
-          navigate('/organizer', { replace: true });
+        if (userRole === 'admin') {
+          // If redirectTo was an admin page, use it, else default to /admin
+          const dest = redirectTo && redirectTo.startsWith('/admin') ? redirectTo : '/admin';
+          navigate(dest, { replace: true });
+        } else if (userRole === 'organizer') {
+          // If redirectTo was an organizer page, use it, else default to /organizer
+          const dest = redirectTo && redirectTo.startsWith('/organizer') ? redirectTo : '/organizer';
+          navigate(dest, { replace: true });
         } else {
-          navigate(redirectTo || '/', { replace: true });
+          // Student role
+          const dest = redirectTo && !redirectTo.startsWith('/admin') && !redirectTo.startsWith('/organizer')
+            ? redirectTo
+            : '/my-registrations';
+          navigate(dest, { replace: true });
         }
       }
     },
@@ -60,111 +66,106 @@ export function LoginPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-[#0B1329] flex flex-col text-white">
       {/* Header bar */}
-      <div className="h-16 bg-white border-b border-border flex items-center px-6">
+      <div className="h-16 bg-[#111C3A] border-b border-[#1E2D52] flex items-center px-6">
         <Link
           to="/"
           className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-blue-500 rounded-lg"
           aria-label="Go back to homepage"
         >
-          <div className="w-8 h-8 rounded-xl bg-navy flex items-center justify-center">
-            <GraduationCap size={16} className="text-white" />
+          <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
+            <GraduationCap size={18} className="text-white" />
           </div>
-          <span className="text-sm font-semibold text-navy">KSR College of Engineering</span>
+          <span className="text-sm font-bold font-poppins text-white">
+            KSR College of Engineering
+          </span>
         </Link>
       </div>
 
       {/* Form */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl border border-border shadow-card p-8">
+          <div className="bg-[#111C3A] rounded-3xl border border-[#1E2D52] shadow-2xl p-8 animate-slide-in">
             {/* Heading */}
             <div className="text-center mb-8">
-              <div className="w-12 h-12 rounded-xl bg-navy mx-auto flex items-center justify-center mb-4">
-                <GraduationCap size={22} className="text-white" />
+              <div className="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-400 mx-auto flex items-center justify-center mb-4">
+                <ShieldCheck size={24} />
               </div>
-              <h1 className="text-xl font-bold font-poppins text-navy">Welcome back</h1>
-              <p className="text-sm text-slate-500 mt-1">
-                Sign in to your CampusConnect account
+              <h1 className="text-xl font-bold font-poppins text-white">
+                Sign in to CampusConnect
+              </h1>
+              <p className="text-xs text-slate-400 mt-1">
+                Enter your credentials to access your portal
               </p>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <div
+                role="alert"
+                className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 leading-relaxed animate-shake"
+              >
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
-              {/* Email */}
               <Input
                 label="Email Address"
                 type="email"
                 id="login-email"
                 value={form.email}
-                onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="you@ksrce.ac.in"
+                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                placeholder="name@ksrce.ac.in"
+                leftIcon={<Mail size={16} />}
                 autoComplete="email"
                 required
-                leftIcon={<Mail size={15} />}
               />
 
-              {/* Password */}
-              <Input
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                id="login-password"
-                value={form.password}
-                onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                required
-                leftIcon={<Lock size={15} />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(prev => !prev)}
-                    className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                }
-              />
-
-              {/* Error message */}
-              {error && (
-                <div
-                  role="alert"
-                  className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium"
+              <div className="relative">
+                <Input
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  id="login-password"
+                  value={form.password}
+                  onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                  placeholder="••••••••"
+                  leftIcon={<Lock size={16} />}
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute right-3.5 top-8 text-slate-400 hover:text-white p-1 focus:outline-none"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {error}
-                </div>
-              )}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
 
-              {/* Submit */}
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                loading={loading}
-                className="w-full justify-center mt-2"
-                id="login-submit-btn"
-              >
-                Sign In
-              </Button>
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="w-full justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/30"
+                  loading={loading}
+                >
+                  Sign In
+                </Button>
+              </div>
             </form>
 
-            {/* Footer links */}
-            <div className="mt-6 pt-6 border-t border-border text-center space-y-2">
-              <p className="text-xs text-slate-500">
-                New Student?{' '}
-                <Link
-                  to="/"
-                  className="font-semibold text-blue-600 hover:underline"
-                >
-                  Register for an event
-                </Link>{' '}
-                to get your credentials instantly!
-              </p>
-              <p className="text-xs text-slate-400">
-                Faculty / Organisers: Sign in with your <code className="text-xs font-mono bg-slate-100 px-1 py-0.5 rounded">@ksrce.ac.in</code> email
-              </p>
+            {/* Credentials helper card */}
+            <div className="mt-6 pt-5 border-t border-[#1E2D52] space-y-2 text-center text-xs text-slate-400">
+              <p className="font-semibold text-slate-300">Demo Accounts:</p>
+              <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono">
+                <span className="bg-[#0B1329] px-2 py-1 rounded border border-[#1E2D52]">admin@ksrce.ac.in</span>
+                <span className="bg-[#0B1329] px-2 py-1 rounded border border-[#1E2D52]">organizer@ksrce.ac.in</span>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1">Default Password: <code>Campus@123</code></p>
             </div>
           </div>
         </div>

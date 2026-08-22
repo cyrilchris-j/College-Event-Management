@@ -18,33 +18,43 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Security & Global Middlewares
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false,
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 
-// CORS Configuration
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'https://college-event-management-ashy.vercel.app',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://*.vercel.app'
-].filter(Boolean);
-
+// Permissive CORS for Localhost, Vercel Previews, and Production
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Allow during setup
-    }
-  },
-  credentials: true
+  origin: true, // Dynamically echo request origin (supports all *.vercel.app, localhost, custom domains)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'apikey', 'Prefer'],
 }));
 
-// Health Check Endpoint (For Render Liveness/Readiness Probes)
+// Explicitly handle all preflight OPTIONS requests
+app.options('*', cors());
+
+// Additional manual CORS fallback headers for every request
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, apikey, Prefer');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Health Check Endpoint (For Render & Vercel Liveness/Readiness Probes)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -67,6 +77,7 @@ app.use('/api/organizer', organizerRoutes);
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to CampusConnect Backend API',
+    status: 'online',
     endpoints: {
       health: '/health',
       auth: '/api/auth',

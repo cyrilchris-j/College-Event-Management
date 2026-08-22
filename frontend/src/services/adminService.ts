@@ -1,6 +1,12 @@
 import { supabase } from './supabase';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const getApiBase = () => {
+  const base = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
+  if (base) {
+    return base.replace(/\/api\/?$/, '').replace(/\/$/, '') + '/api';
+  }
+  return '/api';
+};
 
 export interface AdminDashboardTelemetry {
   metrics: {
@@ -24,7 +30,7 @@ export interface AdminDashboardTelemetry {
 export async function fetchAdminDashboardData(): Promise<AdminDashboardTelemetry> {
   // 1. Try querying backend API route
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/dashboard-stats`);
+    const response = await fetch(`${getApiBase()}/admin/dashboard-stats`);
     if (response.ok) {
       const json = await response.json();
       if (json.success && json.data) {

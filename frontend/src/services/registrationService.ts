@@ -60,7 +60,7 @@ export async function registerDirect(
   payload: DirectRegistrationPayload
 ): Promise<DirectRegistrationResult> {
   try {
-    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const apiBase = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.origin.includes('vercel.app') ? '' : 'http://localhost:5000');
     const response = await fetch(`${apiBase}/api/registrations/direct`, {
       method: 'POST',
       headers: {
