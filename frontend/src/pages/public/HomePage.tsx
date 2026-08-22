@@ -4,11 +4,8 @@ import { Calendar, ArrowRight, SlidersHorizontal, X } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/HeroSection';
-import { StatsSection } from '@/components/dashboard/StatsSection';
 import { EventList } from '@/components/events/EventList';
 import { FilterDropdown } from '@/components/events/FilterDropdown';
-import { ContactPanel } from '@/components/ContactPanel';
-import { FeatureStrip } from '@/components/FeatureStrip';
 import { useEvents } from '@/hooks/useEvents';
 
 export function HomePage() {
@@ -32,6 +29,10 @@ export function HomePage() {
     filters.category !== 'All' ||
     filters.sort !== 'soonest';
 
+  const upcomingEvents = events
+    .filter(event => new Date(event.event_start).getTime() > Date.now())
+    .sort((a, b) => new Date(a.event_start).getTime() - new Date(b.event_start).getTime());
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
 
@@ -44,10 +45,7 @@ export function HomePage() {
 
       <main id="main-content">
         {/* ── Hero ────────────────────────────────────────────────────── */}
-        <HeroSection />
-
-        {/* ── Statistics ──────────────────────────────────────────────── */}
-        <StatsSection />
+        <HeroSection events={events} />
 
         {/* ── Main Content: Events + Contact ──────────────────────────── */}
         <section
@@ -57,8 +55,9 @@ export function HomePage() {
         >
           <div className="flex flex-col lg:flex-row gap-6">
 
-            {/* ── ALL EVENTS (75%) ────────────────────────────────────── */}
-            <div className="flex-1 min-w-0">
+            {/* ── ALL EVENTS & UPCOMING EVENTS (75%) ──────────────────── */}
+            <div className="flex-1 min-w-0 space-y-8">
+              {/* All Events */}
               <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
                 {/* Section header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -165,18 +164,34 @@ export function HomePage() {
                   hasActiveFilters={hasActiveFilters}
                 />
               </div>
+
+              {/* Upcoming Events */}
+              {!loading && upcomingEvents.length > 0 && (
+                <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={18} className="text-blue-600" aria-hidden="true" />
+                      <h2 className="text-base font-semibold font-poppins text-navy">
+                        Upcoming Events
+                      </h2>
+                    </div>
+                  </div>
+                  <EventList
+                    events={upcomingEvents}
+                    loading={loading}
+                    error={error}
+                    onClearFilters={refetch}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* ── CONTACT PANEL (25%) ──────────────────────────────────── */}
-            <div className="w-full lg:w-72 xl:w-80 flex-shrink-0">
-              <ContactPanel />
-            </div>
+
 
           </div>
         </section>
 
-        {/* ── Feature Strip ────────────────────────────────────────────── */}
-        <FeatureStrip />
+
       </main>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}

@@ -1,14 +1,49 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Play, Calendar, QrCode, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Play, Calendar, MapPin, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import type { Event } from '@/types';
+import { getEventThumbnail } from '@/utils/eventHelpers';
+import { formatEventDateRange } from '@/utils/dateFormatter';
+import { CategoryBadge } from '@/components/events/CategoryBadge';
+import { RegistrationProgress } from '@/components/events/RegistrationProgress';
 
-export function HeroSection() {
+interface HeroSectionProps {
+  events?: Event[];
+}
+
+export function HeroSection({ events = [] }: HeroSectionProps) {
   const navigate = useNavigate();
+
+  // 1. Sort events by created_at in descending order to get the newest first, slice 3
+  const recentEvents = [...events]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 3);
+
+  // 2. We want display order: 3rd most recent (idx 2) -> 2nd most recent (idx 1) -> newest (idx 0)
+  const displayEvents = [recentEvents[2], recentEvents[1], recentEvents[0]].filter(Boolean);
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (displayEvents.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % displayEvents.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [displayEvents.length]);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [displayEvents.length]);
+
+  const activeEvent = displayEvents[currentIndex];
+  const thumbnail = activeEvent ? getEventThumbnail(activeEvent) : '';
+  const dateLabel = activeEvent ? formatEventDateRange(activeEvent.event_start, activeEvent.event_end) : '';
 
   return (
     <section
-      className="w-full bg-gradient-to-br from-blue-50 via-white to-slate-50
-                 border-b border-border"
+      className="w-full bg-gradient-to-br from-blue-50 via-white to-slate-50 border-b border-border"
       aria-label="Welcome hero section"
     >
       <div className="container-main py-12 lg:py-16">
@@ -91,8 +126,8 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* ── RIGHT: Visual Cards ─────────────────────────────────────── */}
-          <div className="relative flex items-center justify-center h-[400px] lg:h-[420px]">
+          {/* ── RIGHT: Recent Events Animatic Carousel ────────────────────── */}
+          <div className="relative flex flex-col items-center justify-center min-h-[420px] w-full max-w-[400px] mx-auto">
             {/* Decorative background circles */}
             <div
               className="absolute w-72 h-72 rounded-full bg-blue-100/60 top-1/2 left-1/2
@@ -100,125 +135,107 @@ export function HeroSection() {
               aria-hidden="true"
             />
             <div
-              className="absolute w-48 h-48 rounded-full bg-purple-100/40 top-6 right-6"
+              className="absolute w-48 h-48 rounded-full bg-purple-100/40 -top-6 right-6"
               aria-hidden="true"
             />
 
-            {/* ── Calendar Card (center-left) ─────────────────────────── */}
-            <div
-              className="floating absolute left-0 top-8 w-48 bg-white rounded-2xl border border-border
-                         shadow-card-hover p-4 z-10"
-              aria-hidden="true"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-navy">May 2024</span>
-                <Calendar size={14} className="text-blue-600" />
-              </div>
-              {/* Mini calendar grid */}
-              <div className="grid grid-cols-7 gap-0.5 text-center">
-                {['M','T','W','T','F','S','S'].map((d, i) => (
-                  <span key={i} className="text-[9px] font-semibold text-slate-400">{d}</span>
-                ))}
-                {[...Array(5)].map((_, i) => (
-                  <span key={`pad-${i}`} className="text-[10px] text-transparent">0</span>
-                ))}
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
-                  <button
-                    key={d}
-                    className={[
-                      'text-[10px] w-5 h-5 rounded flex items-center justify-center mx-auto',
-                      d === 25
-                        ? 'bg-blue-600 text-white font-bold'
-                        : d === 28 || d === 30
-                        ? 'bg-blue-100 text-blue-700 font-semibold'
-                        : 'text-slate-600 hover:bg-slate-100',
-                    ].join(' ')}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Event Info Card (center) ────────────────────────────── */}
-            <div
-              className="floating-delayed absolute top-16 right-4 lg:right-0 w-52 bg-white rounded-2xl
-                         border border-border shadow-card-hover p-4 z-20"
-              aria-hidden="true"
-            >
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center mb-3">
-                <Calendar size={16} className="text-white" />
-              </div>
-              <h3 className="text-sm font-bold text-navy">AI Workshop</h3>
-              <p className="text-xs text-slate-500 mt-0.5">May 25, 2024</p>
-              <p className="text-xs text-slate-500">Speaker: Dr. Sarah Johnson</p>
-              <div className="mt-3 flex items-center gap-2">
-                <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 w-[62%] rounded-full" />
-                </div>
-                <span className="text-xs font-semibold text-green-600">62%</span>
-              </div>
-              <button
-                className="mt-3 w-full py-1.5 text-xs font-semibold text-white bg-blue-600
-                           rounded-lg hover:bg-blue-700 transition-colors"
+            {activeEvent ? (
+              <div
+                key={activeEvent.id}
+                className="w-full max-w-[340px] bg-white rounded-2xl border border-border
+                           shadow-card-hover p-5 z-10 flex flex-col gap-4 animate-fade-up floating
+                           hover:border-blue-300 hover:shadow-lg transition-all duration-300 cursor-pointer"
+                onClick={() => navigate(`/events/${activeEvent.id}`)}
               >
-                Register Now
-              </button>
-            </div>
-
-            {/* ── Registered Card (bottom-left) ──────────────────────── */}
-            <div
-              className="floating-slow absolute bottom-8 left-6 w-44 bg-white rounded-xl
-                         border border-border shadow-card p-3 z-10"
-              aria-hidden="true"
-            >
-              <p className="text-xs font-semibold text-navy">Hackathon 2024</p>
-              <p className="text-xs text-slate-500 mt-0.5">May 20, 2024</p>
-              <div className="flex items-center gap-1.5 mt-2">
-                <div className="flex -space-x-1.5">
-                  {['#2563EB','#8B5CF6','#10B981'].map((c, i) => (
-                    <div
-                      key={i}
-                      className="w-5 h-5 rounded-full border-2 border-white"
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
+                {/* Event Image */}
+                <div className="relative w-full h-[170px] rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
+                  <img
+                    src={thumbnail}
+                    alt={`${activeEvent.title} banner`}
+                    className="w-full h-full object-cover"
+                    onError={e => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=250&fit=crop';
+                    }}
+                  />
+                  <div className="absolute top-3 right-3 z-20">
+                    <CategoryBadge category={activeEvent.category} />
+                  </div>
                 </div>
-                <span className="text-[10px] font-semibold text-slate-600">150+ Registered</span>
-              </div>
-            </div>
 
-            {/* ── Digital Pass / QR Card (bottom-right) ──────────────── */}
-            <div
-              className="floating absolute bottom-4 right-2 lg:right-0 w-44 bg-navy rounded-xl
-                         shadow-lg p-3 z-20"
-              aria-hidden="true"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-white">Your Event Pass</span>
-                <QrCode size={14} className="text-blue-300" />
+                {/* Title & Description */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600">
+                    Recent Event
+                  </span>
+                  <h3 className="text-base font-bold text-navy mt-0.5 line-clamp-1">
+                    {activeEvent.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                    {activeEvent.short_description ?? activeEvent.description}
+                  </p>
+                </div>
+
+                {/* Date & Location */}
+                <div className="flex flex-col gap-2 border-t border-border/80 pt-3.5">
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <Calendar size={13} className="text-blue-600" />
+                    <span className="font-medium">{dateLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-600">
+                    <MapPin size={13} className="text-blue-600" />
+                    <span className="font-medium truncate">{activeEvent.venue}</span>
+                  </div>
+                </div>
+
+                {/* Registration Progress */}
+                <div className="border-t border-border/80 pt-3.5">
+                  <RegistrationProgress event={activeEvent} showCount />
+                </div>
+
+                {/* Button */}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  className="w-full justify-center mt-1"
+                  onClick={e => {
+                    e.stopPropagation();
+                    navigate(`/events/${activeEvent.id}`);
+                  }}
+                >
+                  Register Now
+                </Button>
               </div>
-              {/* Fake QR pattern */}
-              <div className="w-20 h-20 mx-auto bg-white rounded-lg p-1.5">
-                <div className="w-full h-full grid grid-cols-5 gap-0.5">
-                  {Array.from({ length: 25 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="rounded-[1px]"
-                      style={{
-                        backgroundColor:
-                          [0,1,5,6,10,15,20,21,24,3,13,18,8,23].includes(i)
-                            ? '#132B5C'
-                            : 'transparent',
-                      }}
-                    />
-                  ))}
+            ) : (
+              /* Fallback Placeholder Card */
+              <div className="w-full max-w-[340px] bg-white rounded-2xl border border-border shadow-card-hover p-6 text-center flex flex-col gap-4 items-center z-10">
+                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                  <Calendar size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-navy">No Events Uploaded</h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-[240px] mx-auto leading-relaxed">
+                    Events uploaded by the admin or organizers will show up here automatically.
+                  </p>
                 </div>
               </div>
-              <p className="text-center text-[9px] text-blue-200 mt-2">
-                Scan to Verify
-              </p>
-            </div>
+            )}
+
+            {/* Slide indicators */}
+            {displayEvents.length > 1 && (
+              <div className="absolute -bottom-6 flex items-center gap-1.5 z-20">
+                {displayEvents.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      currentIndex === idx ? 'bg-blue-600 w-4' : 'bg-slate-300 hover:bg-slate-400'
+                    }`}
+                    aria-label={`Go to event slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
