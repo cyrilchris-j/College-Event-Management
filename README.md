@@ -369,9 +369,24 @@ Run the SQL schema scripts provided in the `supabase/migrations/` directory insi
 
 ### **5. Start the Development Server**
 ```bash
-npm run dev
+# Start frontend
+cd frontend && npm install && npm run dev
+
+# Start backend
+cd ../backend && npm install && npm run dev
 ```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+---
+
+## 🚀 Cloud Deployment (Vercel + Render)
+
+CampusConnect is pre-configured for automated continuous deployment:
+* **Frontend:** Deployed on **Vercel** with SPA route rewrites in [`frontend/vercel.json`](file:///c:/College-Event-Management/frontend/vercel.json).
+* **Backend API:** Deployed on **Render** using Infrastructure-as-Code in [`render.yaml`](file:///c:/College-Event-Management/render.yaml).
+* **Database & Storage:** Hosted on **Supabase** (tables, storage buckets, RLS, triggers).
+
+👉 **For step-by-step deployment instructions, refer to the [Deployment Guide](file:///c:/College-Event-Management/docs/DEPLOYMENT_GUIDE.md).**
 
 ---
 

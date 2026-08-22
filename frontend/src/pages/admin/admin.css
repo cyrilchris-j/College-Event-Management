@@ -1,0 +1,268 @@
+/**
+ * admin.css
+ * Admin portal specific CSS — dark premium theme tokens
+ */
+
+/* ─── Admin Dark Theme Tokens ──────────────────────────────────────────────── */
+:root {
+  --ad-bg:          #07111F;
+  --ad-surface:     #0D1B2A;
+  --ad-surface-2:   #101D2D;
+  --ad-elevated:    #142338;
+  --ad-border:      rgba(255,255,255,0.08);
+  --ad-border-soft: rgba(255,255,255,0.05);
+  --ad-gold:        #C8A96B;
+  --ad-gold-dim:    rgba(200,169,107,0.15);
+  --ad-blue:        #315CFF;
+  --ad-blue-dim:    rgba(49,92,255,0.15);
+  --ad-violet:      #8B7CFF;
+  --ad-violet-dim:  rgba(139,124,255,0.12);
+  --ad-green:       #3CCB91;
+  --ad-green-dim:   rgba(60,203,145,0.12);
+  --ad-amber:       #E6A84B;
+  --ad-amber-dim:   rgba(230,168,75,0.12);
+  --ad-danger:      #E36D6D;
+  --ad-danger-dim:  rgba(227,109,109,0.12);
+  --ad-text:        #F7F8FA;
+  --ad-text-2:      #AAB6C7;
+  --ad-text-3:      #68778C;
+}
+
+/* ─── Admin page base ──────────────────────────────────────────────────────── */
+.admin-page {
+  background-color: var(--ad-bg);
+  color: var(--ad-text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
+
+/* ─── Admin container ──────────────────────────────────────────────────────── */
+.admin-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+/* ─── Playfair editorial headings ──────────────────────────────────────────── */
+.admin-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: var(--ad-text);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+/* ─── Gold accent line ─────────────────────────────────────────────────────── */
+.gold-divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--ad-gold) 0%, transparent 100%);
+  opacity: 0.5;
+  margin: 0.5rem 0;
+}
+
+/* ─── Eyebrow text ─────────────────────────────────────────────────────────── */
+.admin-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ad-gold);
+}
+
+/* ─── Surface card ─────────────────────────────────────────────────────────── */
+.admin-surface {
+  background-color: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: 10px;
+}
+
+.admin-elevated {
+  background-color: var(--ad-elevated);
+  border: 1px solid var(--ad-border);
+  border-radius: 10px;
+}
+
+/* ─── Live pulse animation ─────────────────────────────────────────────────── */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+@keyframes ripple {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ad-green);
+  animation: livePulse 1.5s ease-in-out infinite;
+  position: relative;
+}
+.live-dot::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 1px solid var(--ad-green);
+  animation: ripple 1.5s ease-out infinite;
+}
+
+/* ─── Admin table ─────────────────────────────────────────────────────────── */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.admin-table th {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ad-text-3);
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--ad-border);
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--ad-border-soft);
+  vertical-align: middle;
+}
+.admin-table tbody tr {
+  transition: background 0.15s;
+}
+.admin-table tbody tr:hover {
+  background: rgba(49,92,255,0.04);
+}
+.admin-table tbody tr:hover .row-gold-accent {
+  opacity: 1;
+}
+.row-gold-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ad-gold);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+/* ─── Count-up animation ───────────────────────────────────────────────────── */
+@keyframes countFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-animate {
+  animation: countFadeUp 0.6s ease-out forwards;
+}
+
+/* ─── Nav hover underline ─────────────────────────────────────────────────── */
+.admin-nav-item {
+  position: relative;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ad-text-2);
+  padding: 0.25rem 0;
+  cursor: pointer;
+  transition: color 0.2s;
+  letter-spacing: 0.01em;
+}
+.admin-nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--ad-gold);
+  transition: width 0.25s ease;
+}
+.admin-nav-item:hover {
+  color: var(--ad-text);
+}
+.admin-nav-item:hover::after,
+.admin-nav-item.active::after {
+  width: 100%;
+}
+.admin-nav-item.active {
+  color: var(--ad-text);
+}
+
+/* ─── Radix select/dropdown override ──────────────────────────────────────── */
+.admin-select-content {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* ─── Drawer ──────────────────────────────────────────────────────────────── */
+.admin-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+}
+.admin-drawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: min(540px, 92vw);
+  background: var(--ad-surface);
+  border-left: 1px solid var(--ad-border);
+  z-index: 60;
+  overflow-y: auto;
+  animation: slideInDrawer 0.3s cubic-bezier(0.32,0.72,0,1);
+}
+@keyframes slideInDrawer {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+/* ─── Dialog ──────────────────────────────────────────────────────────────── */
+.admin-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-dialog {
+  background: var(--ad-surface);
+  border: 1px solid var(--ad-border);
+  border-radius: 14px;
+  width: min(560px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: dialogScale 0.2s ease-out;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+@keyframes dialogScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Chart grid lines ─────────────────────────────────────────────────────── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255,255,255,0.04) !important;
+}
+.recharts-text {
+  fill: #68778C !important;
+  font-size: 11px !important;
+}
+
+/* ─── Scrollbar (admin) ────────────────────────────────────────────────────── */
+.admin-page ::-webkit-scrollbar { width: 5px; }
+.admin-page ::-webkit-scrollbar-track { background: var(--ad-bg); }
+.admin-page ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
