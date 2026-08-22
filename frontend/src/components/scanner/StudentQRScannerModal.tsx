@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+// @ts-ignore
 import { Html5Qrcode } from 'html5-qrcode';
 import {
   QrCode, X, CheckCircle2, AlertCircle, RefreshCw,
@@ -28,7 +29,7 @@ export function StudentQRScannerModal({
   const [resultMessage, setResultMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<any>(null);
   const regionId = 'qr-reader-region';
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export function StudentQRScannerModal({
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0,
           },
-          async (decodedText) => {
+          async (decodedText: string) => {
             if (!isMounted || processing) return;
 
             // Pause scanner
