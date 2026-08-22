@@ -307,3 +307,21 @@ export async function cancelRegistration(
 
   return { success: true, error: null };
 }
+
+/**
+ * Update registration status to 'attended' when scanned.
+ */
+export async function markAttendance(
+  registrationId: string
+): Promise<{ success: boolean; error: string | null }> {
+  const { error } = await supabase
+    .from('registrations')
+    .update({ status: 'attended' })
+    .eq('id', registrationId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, error: null };
+}

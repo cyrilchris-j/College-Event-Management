@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Ticket, CheckCircle2, AlertCircle, Copy, Check, ShieldCheck } from 'lucide-react';
-import { getRegistrationById } from '@/services/registrationService';
+import { getRegistrationById, markAttendance } from '@/services/registrationService';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -10,6 +10,7 @@ import { EventDetailSkeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
 import { formatEventDateRange } from '@/utils/dateFormatter';
 import type { Registration } from '@/types';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export function TicketPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,78 @@ export function TicketPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showScanner) return;
+
+    let html5QrCode: Html5Qrcode | null = null;
+    let isMounted = true;
+
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+      try {
+        html5QrCode = new Html5Qrcode('reader');
+        html5QrCode.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 200, height: 200 },
+          },
+          async (decodedText) => {
+            console.log('Decoded text:', decodedText);
+            if (html5QrCode && html5QrCode.isScanning) {
+              await html5QrCode.stop();
+            }
+            await handleSuccessfulScan(decodedText);
+          },
+          () => {
+            // Ignore scan frame errors
+          }
+        ).catch((err) => {
+          console.error('Error starting html5QrCode camera:', err);
+          if (isMounted) {
+            setScannerError('Could not start camera. Please verify device permissions or try the mock check-in simulation.');
+          }
+        });
+      } catch (err) {
+        console.error('Html5Qrcode constructor error:', err);
+        if (isMounted) {
+          setScannerError('Failed to initialize webcam scanner.');
+        }
+      }
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(err => console.error('Error stopping scanner during cleanup:', err));
+      }
+    };
+  }, [showScanner]);
+
+  const handleOpenScanner = () => {
+    setScannerError(null);
+    setShowScanner(true);
+  };
+
+  const handleSuccessfulScan = async (_text: string) => {
+    try {
+      setShowScanner(false);
+      
+      const { success, error } = await markAttendance(registration!.id);
+      if (success) {
+        setRegistration(prev => prev ? { ...prev, status: 'attended' } : null);
+        alert('Attendance marked successfully! You are now marked as Present.');
+      } else {
+        alert(`Failed to mark attendance: ${error}`);
+      }
+    } catch (err: any) {
+      alert(`Error marking attendance: ${err.message}`);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -130,6 +203,20 @@ export function TicketPage() {
               {/* Dashed divider */}
               <div className="mt-4 border-t border-dashed border-white/20" />
 
+              {/* Mark Attendance Button */}
+              {registration.status !== 'attended' && (
+                <div className="mt-4 mb-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="w-full justify-center bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2.5 uppercase tracking-wider rounded-lg shadow-lg shadow-blue-600/20"
+                    onClick={handleOpenScanner}
+                  >
+                    Mark Attendance
+                  </Button>
+                </div>
+              )}
+
               {/* Event info */}
               <div className="mt-4 space-y-2">
                 {event?.event_start && (
@@ -212,6 +299,42 @@ export function TicketPage() {
           </Button>
         </div>
       </main>
+
+      {showScanner && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-6 relative text-center space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-white font-poppins">Mark Attendance</h3>
+            <p className="text-xs text-slate-400">
+              Point your camera at the event check-in QR code to mark your attendance.
+            </p>
+
+            {scannerError && (
+              <div className="p-3 bg-red-950/40 border border-red-500/20 text-red-400 text-xs rounded-lg max-w-xs mx-auto font-medium">
+                {scannerError}
+              </div>
+            )}
+
+            {/* Reader Container */}
+            <div className="w-full aspect-square max-w-[280px] mx-auto overflow-hidden rounded-xl border border-[#1E2D52] bg-[#0B1329] relative">
+              <div id="reader" className="w-full h-full" />
+              <div className="absolute inset-0 border-2 border-blue-500/30 rounded-xl pointer-events-none animate-pulse flex items-center justify-center">
+                <div className="w-48 h-48 border-2 border-dashed border-blue-500 rounded-lg" />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowScanner(false)}
+                className="w-full justify-center border border-[#1E2D52] bg-[#0B1329] hover:bg-[#1E2D52] text-white text-xs py-2.5"
+              >
+                Close Camera
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

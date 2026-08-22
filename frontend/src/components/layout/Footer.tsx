@@ -1,19 +1,4 @@
-import {
-  GraduationCap,
-  Facebook,
-  Instagram,
-  Linkedin,
-  Twitter,
-  Youtube,
-} from 'lucide-react';
-
-const SOCIAL_LINKS = [
-  { icon: <Facebook size={16} />, label: 'Facebook', href: 'https://facebook.com' },
-  { icon: <Instagram size={16} />, label: 'Instagram', href: 'https://instagram.com' },
-  { icon: <Linkedin size={16} />, label: 'LinkedIn', href: 'https://linkedin.com' },
-  { icon: <Twitter size={16} />, label: 'Twitter / X', href: 'https://twitter.com' },
-  { icon: <Youtube size={16} />, label: 'YouTube', href: 'https://youtube.com' },
-];
+import { GraduationCap } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -37,24 +22,6 @@ export function Footer() {
             Centralized campus event discovery and registration portal for
             students and the KSR community.
           </p>
-        </div>
-
-        {/* 5 Social Icons (Centered) */}
-        <div className="flex items-center gap-3.5 justify-center" aria-label="Social media links">
-          {SOCIAL_LINKS.map(social => (
-            <a
-              key={social.label}
-              href={social.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={social.label}
-              className="w-9 h-9 rounded-full border border-border flex items-center justify-center
-                         text-slate-500 hover:text-blue-600 hover:border-blue-300 hover:bg-white
-                         transition-all duration-200 focus-visible:outline-2 focus-visible:outline-blue-500 shadow-sm"
-            >
-              {social.icon}
-            </a>
-          ))}
         </div>
 
         {/* Bottom bar (Copyright, no top border) */}
