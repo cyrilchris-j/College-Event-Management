@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -9,38 +8,8 @@ import { CategoryBadge } from '@/components/events/CategoryBadge';
 import { RegistrationProgress } from '@/components/events/RegistrationProgress';
 import { EventCountdown } from '@/components/events/EventCountdown';
 
-interface HeroSectionProps {
-  events?: Event[];
-}
-
-export function HeroSection({ events = [] }: HeroSectionProps) {
+export function HeroSection() {
   const navigate = useNavigate();
-
-  // 1. Sort events by created_at in descending order to get the newest first, slice 3
-  const recentEvents = [...events]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3);
-
-  // 2. We want display order: 3rd most recent (idx 2) -> 2nd most recent (idx 1) -> newest (idx 0)
-  const displayEvents = [recentEvents[2], recentEvents[1], recentEvents[0]].filter(Boolean);
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (displayEvents.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % displayEvents.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [displayEvents.length]);
-
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [displayEvents.length]);
-
-  const activeEvent = displayEvents[currentIndex];
-  const thumbnail = activeEvent ? getEventThumbnail(activeEvent) : '';
-  const dateLabel = activeEvent ? formatEventDateRange(activeEvent.event_start, activeEvent.event_end) : '';
 
   return (
     <section
