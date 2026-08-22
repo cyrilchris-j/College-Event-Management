@@ -272,3 +272,18 @@ input, select, textarea {
 .focus\:border-blue-500:focus {
   border-color: #3B82F6 !important;
 }
+
+/* Custom Slide-In Animation */
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.animate-slide-in {
+  animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
