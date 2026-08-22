@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties ─────────────────────────────────────────── */
+:root {
+  --color-navy: #132B5C;
+  --color-blue: #2563EB;
+  --color-blue-light: #EAF2FF;
+  --color-purple: #8B5CF6;
+  --color-purple-light: #F1EDFF;
+  --color-green: #10B981;
+  --color-green-light: #EAFBF4;
+  --color-amber: #F59E0B;
+  --color-amber-light: #FFF7E6;
+  --color-red: #EF4444;
+  --color-red-light: #FEF2F2;
+  --color-background: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text-primary: #132B5C;
+  --color-text-secondary: #64748B;
+}
+
+/* ─── Base Resets ────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ─── Typography ─────────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin: 0;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ─── Focus Styles (WCAG 2.1 AA) ────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Component Utilities ────────────────────────────────────────────── */
+@layer components {
+  /* Container */
+  .container-main {
+    @apply max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Section heading */
+  .section-heading {
+    font-family: 'Poppins', sans-serif;
+    @apply text-2xl font-semibold text-navy;
+  }
+
+  /* Card */
+  .card-base {
+    @apply bg-white rounded-xl border border-border shadow-card;
+  }
+
+  /* Button base */
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 font-inter font-medium text-sm
+           rounded-lg transition-all duration-200 focus-visible:outline-2 focus-visible:outline-blue
+           disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply btn-base bg-blue-600 text-white px-5 py-2.5
+           hover:bg-blue-700 active:bg-blue-800 shadow-sm hover:shadow-md;
+  }
+
+  .btn-secondary {
+    @apply btn-base bg-white text-navy border border-border px-5 py-2.5
+           hover:border-blue-600 hover:text-blue-600 hover:bg-blue-50;
+  }
+
+  .btn-ghost {
+    @apply btn-base bg-transparent text-text-secondary px-3 py-2
+           hover:bg-slate-100 hover:text-navy;
+  }
+
+  /* Badge */
+  .badge-base {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  /* Event row */
+  .event-row {
+    @apply flex items-center gap-4 px-5 py-4 border-b border-border last:border-0
+           hover:bg-blue-50/40 transition-all duration-200 group cursor-pointer;
+  }
+
+  /* Stat card */
+  .stat-card {
+    @apply card-base flex items-center gap-4 p-5;
+  }
+
+  /* Progress bar track */
+  .progress-track {
+    @apply w-full h-1.5 bg-slate-100 rounded-full overflow-hidden;
+  }
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────── */
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.5s ease-out forwards;
+  }
+  .animate-fade-up-delay-1 {
+    animation: fadeUp 0.5s ease-out 0.1s forwards;
+    opacity: 0;
+  }
+  .animate-fade-up-delay-2 {
+    animation: fadeUp 0.5s ease-out 0.2s forwards;
+    opacity: 0;
+  }
+  .animate-fade-up-delay-3 {
+    animation: fadeUp 0.5s ease-out 0.3s forwards;
+    opacity: 0;
+  }
+  .animate-fade-up-delay-4 {
+    animation: fadeUp 0.5s ease-out 0.4s forwards;
+    opacity: 0;
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-6px) rotate(1deg); }
+}
+
+@keyframes progressFill {
+  from { width: 0%; }
+  to   { width: var(--pw, 0%); }
+}
+
+.floating {
+  animation: float 4s ease-in-out infinite;
+}
+.floating-delayed {
+  animation: float 4s ease-in-out 1.2s infinite;
+}
+.floating-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+/* ─── Dark mode (future) ─────────────────────────────────────────────── */
+.dark body {
+  background-color: #0F172A;
+  color: #E2E8F0;
+}

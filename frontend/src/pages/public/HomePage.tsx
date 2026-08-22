@@ -1,0 +1,186 @@
+import { useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Calendar, ArrowRight, SlidersHorizontal, X } from 'lucide-react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { HeroSection } from '@/components/HeroSection';
+import { StatsSection } from '@/components/dashboard/StatsSection';
+import { EventList } from '@/components/events/EventList';
+import { FilterDropdown } from '@/components/events/FilterDropdown';
+import { ContactPanel } from '@/components/ContactPanel';
+import { FeatureStrip } from '@/components/FeatureStrip';
+import { useEvents } from '@/hooks/useEvents';
+
+export function HomePage() {
+  const {
+    events,
+    loading,
+    error,
+    filters,
+    setSearch,
+    setCategory,
+    setSort,
+    clearFilters,
+    refetch,
+  } = useEvents();
+
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const hasActiveFilters =
+    filters.search !== '' ||
+    filters.category !== 'All' ||
+    filters.sort !== 'soonest';
+
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <Header
+        searchValue={filters.search}
+        onSearchChange={setSearch}
+        onFilterClick={() => setFilterOpen(prev => !prev)}
+      />
+
+      <main id="main-content">
+        {/* ── Hero ────────────────────────────────────────────────────── */}
+        <HeroSection />
+
+        {/* ── Statistics ──────────────────────────────────────────────── */}
+        <StatsSection />
+
+        {/* ── Main Content: Events + Contact ──────────────────────────── */}
+        <section
+          id="events-section"
+          className="container-main py-6"
+          aria-label="All events"
+        >
+          <div className="flex flex-col lg:flex-row gap-6">
+
+            {/* ── ALL EVENTS (75%) ────────────────────────────────────── */}
+            <div className="flex-1 min-w-0">
+              <div className="bg-white rounded-xl border border-border shadow-card overflow-hidden">
+                {/* Section header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={18} className="text-blue-600" aria-hidden="true" />
+                    <h2 className="text-base font-semibold font-poppins text-navy">
+                      All Events
+                    </h2>
+                    {!loading && (
+                      <span
+                        className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700"
+                        aria-label={`${events.length} events shown`}
+                      >
+                        {events.length}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Active filter badges */}
+                    {filters.category !== 'All' && (
+                      <span className="hidden sm:flex items-center gap-1 text-xs bg-blue-100 text-blue-700
+                                       font-semibold px-2.5 py-1 rounded-full">
+                        {filters.category}
+                        <button
+                          onClick={() => setCategory('All')}
+                          aria-label={`Remove ${filters.category} filter`}
+                          className="hover:text-blue-900"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    )}
+
+                    {/* Filter button (relative for dropdown) */}
+                    <div className="relative">
+                      <button
+                        ref={filterButtonRef as React.RefObject<HTMLButtonElement>}
+                        onClick={() => setFilterOpen(prev => !prev)}
+                        aria-expanded={filterOpen}
+                        aria-haspopup="dialog"
+                        aria-label="Open filter panel"
+                        className={[
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
+                          'border transition-colors duration-150',
+                          filterOpen || hasActiveFilters
+                            ? 'border-blue-500 text-blue-600 bg-blue-50'
+                            : 'border-border text-slate-600 hover:border-blue-400 hover:text-blue-600',
+                        ].join(' ')}
+                      >
+                        <SlidersHorizontal size={13} />
+                        Filter
+                        {hasActiveFilters && (
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-blue-600"
+                            aria-label="Active filters"
+                          />
+                        )}
+                      </button>
+
+                      <FilterDropdown
+                        isOpen={filterOpen}
+                        onClose={() => setFilterOpen(false)}
+                        selectedCategory={filters.category}
+                        onCategoryChange={setCategory}
+                        selectedSort={filters.sort}
+                        onSortChange={setSort}
+                        onClear={clearFilters}
+                        hasActiveFilters={hasActiveFilters}
+                        anchorRef={filterButtonRef as React.RefObject<HTMLElement | null>}
+                      />
+                    </div>
+
+                    {/* Clear filters */}
+                    {hasActiveFilters && (
+                      <button
+                        onClick={clearFilters}
+                        className="hidden sm:block text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                        aria-label="Clear all active filters"
+                      >
+                        Clear
+                      </button>
+                    )}
+
+                    {/* View all link */}
+                    <Link
+                      to="/events"
+                      className="hidden sm:flex items-center gap-1 text-xs font-medium text-blue-600
+                                 hover:text-blue-700 transition-colors focus-visible:outline-2
+                                 focus-visible:outline-blue-500 rounded"
+                      aria-label="View all events"
+                    >
+                      View All <ArrowRight size={13} />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Event list */}
+                <EventList
+                  events={events}
+                  loading={loading}
+                  error={error}
+                  onClearFilters={error ? refetch : clearFilters}
+                  hasActiveFilters={hasActiveFilters}
+                />
+              </div>
+            </div>
+
+            {/* ── CONTACT PANEL (25%) ──────────────────────────────────── */}
+            <div className="w-full lg:w-72 xl:w-80 flex-shrink-0">
+              <ContactPanel />
+            </div>
+
+          </div>
+        </section>
+
+        {/* ── Feature Strip ────────────────────────────────────────────── */}
+        <FeatureStrip />
+      </main>
+
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <Footer />
+    </div>
+  );
+}
