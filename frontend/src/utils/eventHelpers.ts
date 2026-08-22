@@ -13,11 +13,18 @@ import type { Event, EventCategory, RegistrationStatus } from '@/types';
  * and registration deadline.
  */
 export function getRegistrationStatus(event: Event): RegistrationStatus {
+  const now = new Date();
   const deadline = event.registration_deadline
     ? new Date(event.registration_deadline)
     : null;
-  const now = new Date();
+  const eventEnd = event.event_end
+    ? new Date(event.event_end)
+    : event.event_start
+    ? new Date(event.event_start)
+    : null;
 
+  // If event has already concluded or deadline passed
+  if (eventEnd && now > eventEnd) return 'closed';
   if (deadline && now > deadline) return 'closed';
   if (event.status === 'closed' || event.status === 'completed') return 'closed';
 

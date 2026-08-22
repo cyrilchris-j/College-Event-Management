@@ -307,3 +307,113 @@ export async function cancelRegistration(
 
   return { success: true, error: null };
 }
+
+/**
+ * Verifies and marks attendance for a student's ticket registration.
+ * Validates:
+ * 1. Matching Event ID in the scanned QR
+ * 2. Event Date Validation (only allows on event date)
+ */
+export async function recordStudentAttendance(
+  registrationId: string,
+  scannedCode: string,
+  event: any
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    if (!scannedCode) {
+      return { success: false, error: 'No QR code data detected.' };
+    }
+
+    // 1. Parse QR Data
+    let scannedEventId = '';
+    try {
+      const parsed = JSON.parse(scannedCode);
+      if (parsed.event_id) {
+        scannedEventId = parsed.event_id;
+      }
+    } catch {
+      // If raw text
+      scannedEventId = scannedCode.trim();
+    }
+
+    // 2. Validate Event Match
+    const isMatching =
+      scannedEventId === event.id ||
+      scannedCode.includes(event.id) ||
+      scannedCode.includes(event.id.slice(0, 8));
+
+    if (!isMatching) {
+      return {
+        success: false,
+        error: `Invalid QR code for this event! Please scan the official check-in QR code for "${event.title}".`,
+      };
+    }
+
+    // 3. Validate Event Date
+    const now = new Date();
+    const eventStart = new Date(event.event_start);
+    const eventEnd = event.event_end
+      ? new Date(event.event_end)
+      : new Date(eventStart.getTime() + 12 * 60 * 60 * 1000); // 12 hrs default
+
+    // Check if today matches event date
+    const isSameDate =
+      now.getFullYear() === eventStart.getFullYear() &&
+      now.getMonth() === eventStart.getMonth() &&
+      now.getDate() === eventStart.getDate();
+
+    // If before event day
+    if (!isSameDate && now < eventStart) {
+      return {
+        success: false,
+        error: `Attendance is only open on the event day (${eventStart.toLocaleDateString()}). You cannot mark attendance before the event date.`,
+      };
+    }
+
+    // If after event ended
+    if (now > eventEnd) {
+      return {
+        success: false,
+        error: `This event concluded on ${eventEnd.toLocaleDateString()}. Attendance window is closed.`,
+      };
+    }
+
+    // 4. Check if already marked
+    const { data: existingAttendance } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('registration_id', registrationId)
+      .maybeSingle();
+
+    if (existingAttendance) {
+      return {
+        success: true,
+        message: 'You have already checked in for this event!',
+      };
+    }
+
+    // 5. Insert Attendance record & update registration status
+    const { error: attError } = await supabase.from('attendance').insert({
+      registration_id: registrationId,
+      checked_in_at: new Date().toISOString(),
+    });
+
+    if (attError) {
+      console.error('[recordStudentAttendance] error:', attError.message);
+      return { success: false, error: attError.message };
+    }
+
+    await supabase
+      .from('registrations')
+      .update({ status: 'attended' })
+      .eq('id', registrationId);
+
+    return {
+      success: true,
+      message: `🎉 Attendance Confirmed! You are marked present for "${event.title}".`,
+    };
+  } catch (err: any) {
+    console.error('[recordStudentAttendance] exception:', err);
+    return { success: false, error: err.message || 'Failed to mark attendance.' };
+  }
+}

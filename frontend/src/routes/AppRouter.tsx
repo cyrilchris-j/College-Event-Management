@@ -119,16 +119,72 @@ export function AppRouter() {
           />
 
           {/* Admin routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Organizer routes */}
-          <Route path="/organizer" element={<OrganizerDashboard />} />
-          <Route path="/organizer/events" element={<OrganizerDashboard />} />
-          <Route path="/organizer/events/create" element={<CreateEventPage />} />
-          <Route path="/organizer/events/:id" element={<ManageEventPage />} />
-          <Route path="/organizer/registrations" element={<OrganizerRegistrationsPage />} />
-          <Route path="/organizer/attendance" element={<OrganizerAttendancePage />} />
-          <Route path="/organizer/reports" element={<OrganizerReportsPage />} />
+          <Route
+            path="/organizer"
+            element={
+              <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                <OrganizerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizer/events"
+            element={
+              <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                <OrganizerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizer/events/create"
+            element={
+              <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                <CreateEventPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizer/events/:id"
+            element={
+              <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                <ManageEventPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizer/registrations"
+            element={
+              <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                <OrganizerRegistrationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizer/attendance"
+            element={
+              <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                <OrganizerAttendancePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/organizer/reports"
+            element={
+              <ProtectedRoute allowedRoles={['organizer', 'admin']}>
+                <OrganizerReportsPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />

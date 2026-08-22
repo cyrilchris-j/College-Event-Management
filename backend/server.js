@@ -5,17 +5,17 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { supabase, supabaseAdmin } from './config/supabase.js';
 
-// Import Routes
 import authRoutes from './routes/authRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import registrationRoutes from './routes/registrationRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import organizerRoutes from './routes/organizerRoutes.js';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 // Security & Global Middlewares
 app.use(helmet());
@@ -61,6 +61,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/organizer', organizerRoutes);
 
 // Root Endpoint
 app.get('/', (req, res) => {
@@ -71,7 +72,9 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       events: '/api/events',
       registrations: '/api/registrations',
-      attendance: '/api/attendance'
+      attendance: '/api/attendance',
+      admin: '/api/admin',
+      organizer: '/api/organizer'
     }
   });
 });
