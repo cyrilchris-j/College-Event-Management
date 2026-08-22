@@ -46,7 +46,7 @@ export function HomePage() {
 
       <main id="main-content">
         {/* ── Hero ────────────────────────────────────────────────────── */}
-        <HeroSection events={events} />
+        <HeroSection />
 
         {/* ── Main Content: Events + Contact ──────────────────────────── */}
         <section

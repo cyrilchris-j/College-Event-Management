@@ -15,16 +15,10 @@ interface HeroSectionProps {
 
 export function HeroSection({ events = [] }: HeroSectionProps) {
   const navigate = useNavigate();
-
-  // 1. Sort events by created_at in descending order to get the newest first, slice 3
-  const recentEvents = [...events]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3);
-
-  // 2. We want display order: 3rd most recent (idx 2) -> 2nd most recent (idx 1) -> newest (idx 0)
-  const displayEvents = [recentEvents[2], recentEvents[1], recentEvents[0]].filter(Boolean);
-
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const displayEvents = events.slice(0, 5);
+  const activeEvent = displayEvents[currentIndex] || displayEvents[0] || null;
 
   useEffect(() => {
     if (displayEvents.length <= 1) return;
@@ -34,11 +28,6 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
     return () => clearInterval(interval);
   }, [displayEvents.length]);
 
-  useEffect(() => {
-    setCurrentIndex(0);
-  }, [displayEvents.length]);
-
-  const activeEvent = displayEvents[currentIndex];
   const thumbnail = activeEvent ? getEventThumbnail(activeEvent) : '';
   const dateLabel = activeEvent ? formatEventDateRange(activeEvent.event_start, activeEvent.event_end) : '';
 
@@ -94,7 +83,7 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
                     <h1 className="text-3xl md:text-4xl font-extrabold text-white mt-1.5 leading-tight tracking-tight">
                       {activeEvent.title}
                     </h1>
-                    <p className="text-sm md:text-base text-slate-350 mt-3 line-clamp-3 leading-relaxed">
+                    <p className="text-sm md:text-base text-slate-300 mt-3 line-clamp-3 leading-relaxed">
                       {activeEvent.short_description ?? activeEvent.description}
                     </p>
                   </div>

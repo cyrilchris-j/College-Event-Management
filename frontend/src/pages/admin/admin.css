@@ -52,7 +52,7 @@
   line-height: 1.15;
 }
 
-/* ─── Gold accent line ─────────────────────────────────────────────────────── */
+/* ─── Gold divider ─────────────────────────────────────────────────────── */
 .gold-divider {
   height: 1px;
   background: linear-gradient(90deg, var(--ad-gold) 0%, transparent 100%);
@@ -135,28 +135,6 @@
 .admin-table tbody tr:hover {
   background: rgba(49,92,255,0.04);
 }
-.admin-table tbody tr:hover .row-gold-accent {
-  opacity: 1;
-}
-.row-gold-accent {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--ad-gold);
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-/* ─── Count-up animation ───────────────────────────────────────────────────── */
-@keyframes countFadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.count-animate {
-  animation: countFadeUp 0.6s ease-out forwards;
-}
 
 /* ─── Nav hover underline ─────────────────────────────────────────────────── */
 .admin-nav-item {
@@ -188,17 +166,6 @@
 }
 .admin-nav-item.active {
   color: var(--ad-text);
-}
-
-/* ─── Radix select/dropdown override ──────────────────────────────────────── */
-.admin-select-content {
-  background: var(--ad-surface);
-  border: 1px solid var(--ad-border);
-  border-radius: 8px;
-  padding: 4px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  z-index: 100;
-  overflow: hidden;
 }
 
 /* ─── Drawer ──────────────────────────────────────────────────────────────── */
@@ -251,18 +218,3 @@
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
 }
-
-/* ─── Chart grid lines ─────────────────────────────────────────────────────── */
-.recharts-cartesian-grid-horizontal line,
-.recharts-cartesian-grid-vertical line {
-  stroke: rgba(255,255,255,0.04) !important;
-}
-.recharts-text {
-  fill: #68778C !important;
-  font-size: 11px !important;
-}
-
-/* ─── Scrollbar (admin) ────────────────────────────────────────────────────── */
-.admin-page ::-webkit-scrollbar { width: 5px; }
-.admin-page ::-webkit-scrollbar-track { background: var(--ad-bg); }
-.admin-page ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
