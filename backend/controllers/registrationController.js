@@ -41,7 +41,15 @@ export async function registerDirect(req, res) {
       return res.status(400).json({ success: false, error: 'Registrations are closed for this event.' });
     }
 
-    if (new Date() > new Date(event.registration_deadline)) {
+    const now = new Date();
+    const deadline = event.registration_deadline ? new Date(event.registration_deadline) : null;
+    const eventEnd = event.event_end ? new Date(event.event_end) : new Date(event.event_start);
+
+    if (now > eventEnd) {
+      return res.status(400).json({ success: false, error: 'This event has already ended. Registrations are closed.' });
+    }
+
+    if (deadline && now > deadline) {
       return res.status(400).json({ success: false, error: 'Registration deadline has passed.' });
     }
 

@@ -41,6 +41,9 @@ export interface Event {
   is_paid?: boolean;
   gpay_number?: string;
   gpay_upi_id?: string;
+  event_mode?: 'offline' | 'online' | 'hybrid';
+  participation_type?: 'solo' | 'team';
+  team_size?: number;
   created_at: string;
   // Computed
   registration_status?: RegistrationStatus;

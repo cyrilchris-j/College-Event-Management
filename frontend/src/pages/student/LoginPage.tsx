@@ -11,13 +11,16 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect');
+  const isUnauthorized = searchParams.get('unauthorized') === '1';
 
   const { login } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    isUnauthorized ? 'Access Restricted: Please sign in with your @ksrce.ac.in Organizer or Admin account to access this section.' : null
+  );
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {

@@ -1,391 +1,584 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar, Clock, MapPin, Users, Upload, Plus, Trash2, CheckCircle2, ArrowLeft, Eye
+  ArrowLeft, Calendar, MapPin, Users, DollarSign, Image,
+  Sparkles, CheckCircle2, AlertCircle, Building, UploadCloud,
+  Globe, Laptop, Users2, User
 } from 'lucide-react';
 import { OrganizerHeader } from './OrganizerHeader';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
-import { Input, Textarea } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
-import { MagnetButton } from '@/components/reactbits/MagnetButton';
+import { Input } from '@/components/ui/Input';
+import { createOrganizerEvent, uploadEventBanner } from '@/services/organizerService';
+import type { EventCategory } from '@/types';
 
-interface ScheduleItem {
-  time: string;
-  title: string;
-}
+const CATEGORIES: EventCategory[] = [
+  'Technical',
+  'Hackathon',
+  'Workshop',
+  'Seminar',
+  'Cultural',
+  'Sports',
+  'Exhibition',
+];
 
 export function CreateEventPage() {
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
-  const [title, setTitle] = useState('');
-  const [shortDesc, setShortDesc] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('Technical');
-  const [date, setDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [venue, setVenue] = useState('');
-  const [capacity, setCapacity] = useState('100');
-  const [deadline, setDeadline] = useState('');
-  const [club, setClub] = useState('Google Developer Student Club');
-  const [organizerName, setOrganizerName] = useState('Dr. Sarah Johnson');
-  const [contactEmail, setContactEmail] = useState('gdsc@ksrce.ac.in');
-  const [contactPhone, setContactPhone] = useState('+91 98765 43210');
-  const [bannerUrl] = useState('https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&h=300&fit=crop');
+  // Banner file upload state
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
-  const [schedule, setSchedule] = useState<ScheduleItem[]>([
-    { time: '10:00 AM', title: 'Registration & Welcome' },
-    { time: '10:30 AM', title: 'Main Session' },
-  ]);
+  // Form State
+  const [form, setForm] = useState({
+    title: '',
+    shortDescription: '',
+    description: '',
+    category: 'Technical' as EventCategory,
+    organizerClub: 'KSRCE Technical Club',
+    eventMode: 'offline' as 'offline' | 'online' | 'hybrid',
+    participationType: 'solo' as 'solo' | 'team',
+    teamSize: '3',
+    eventStart: '',
+    eventEnd: '',
+    registrationDeadline: '',
+    venue: '',
+    capacity: '100',
+    bannerUrl: '',
+    isPaid: false,
+    entryFee: '0',
+    gpayNumber: '9876543210',
+    gpayUpiId: 'campusconnect@upi',
+  });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isPublished, setIsPublished] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  const addScheduleItem = () => {
-    setSchedule(prev => [...prev, { time: '12:00 PM', title: 'New Agenda Item' }]);
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file (PNG, JPG, JPEG, WEBP).');
+        return;
+      }
+      setBannerFile(file);
+      setBannerPreview(URL.createObjectURL(file));
+      setError(null);
+    }
   };
 
-  const removeScheduleItem = (index: number) => {
-    setSchedule(prev => prev.filter((_, i) => i !== index));
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
-  const validateForm = () => {
-    const errs: Record<string, string> = {};
-    if (!title.trim()) errs.title = 'Event title is required.';
-    if (!shortDesc.trim()) errs.shortDesc = 'Short description is required.';
-    if (!description.trim()) errs.description = 'Full description is required.';
-    if (!date) errs.date = 'Event date is required.';
-    if (!startTime) errs.startTime = 'Start time is required.';
-    if (!endTime) errs.endTime = 'End time is required.';
-    if (!venue.trim()) errs.venue = 'Venue location is required.';
-    if (!capacity || parseInt(capacity) <= 0) errs.capacity = 'Valid capacity is required.';
-    if (!deadline) errs.deadline = 'Registration deadline is required.';
-
-    if (date && deadline && new Date(deadline) > new Date(date)) {
-      errs.deadline = 'Deadline must be before or on event date.';
+    if (!form.title.trim()) {
+      setError('Please provide an event title.');
+      return;
+    }
+    if (!form.description.trim()) {
+      setError('Please provide an event description.');
+      return;
+    }
+    if (!form.eventStart) {
+      setError('Please select the event start date and time.');
+      return;
+    }
+    if (!form.venue.trim()) {
+      setError('Please specify the event venue / meeting link.');
+      return;
+    }
+    if (!form.capacity || parseInt(form.capacity, 10) <= 0) {
+      setError('Capacity must be at least 1 seat.');
+      return;
     }
 
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
+    setSubmitting(true);
 
-  const handlePublish = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      setIsPublished(true);
+    try {
+      let finalBannerUrl = form.bannerUrl;
+
+      // 1. Upload Banner Image if file was selected
+      if (bannerFile) {
+        setUploadingImage(true);
+        const { url, error: uploadErr } = await uploadEventBanner(bannerFile, form.title);
+        setUploadingImage(false);
+
+        if (uploadErr || !url) {
+          setError(uploadErr || 'Failed to upload event banner.');
+          setSubmitting(false);
+          return;
+        }
+        finalBannerUrl = url;
+      }
+
+      // 2. Create Event
+      const { event, error: createError } = await createOrganizerEvent({
+        title: form.title,
+        short_description: form.shortDescription || form.description.slice(0, 120),
+        description: form.description,
+        category: form.category,
+        organizer_name: form.organizerClub,
+        event_mode: form.eventMode,
+        participation_type: form.participationType,
+        team_size: form.participationType === 'team' ? parseInt(form.teamSize, 10) || 3 : 1,
+        event_start: new Date(form.eventStart).toISOString(),
+        event_end: form.eventEnd ? new Date(form.eventEnd).toISOString() : new Date(form.eventStart).toISOString(),
+        registration_deadline: form.registrationDeadline
+          ? new Date(form.registrationDeadline).toISOString()
+          : new Date(form.eventStart).toISOString(),
+        venue: form.venue,
+        capacity: parseInt(form.capacity, 10),
+        banner_url: finalBannerUrl || undefined,
+        is_paid: form.isPaid,
+        entry_fee: form.isPaid ? parseFloat(form.entryFee) || 0 : 0,
+        gpay_number: form.gpayNumber,
+        gpay_upi_id: form.gpayUpiId,
+        status: 'published',
+      });
+
+      if (createError || !event) {
+        setError(createError || 'Failed to create event.');
+      } else {
+        setSuccess(true);
+        setTimeout(() => {
+          navigate('/organizer');
+        }, 1500);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error occurred while creating event.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-white">
+    <div className="flex flex-col min-h-screen bg-[#0B1329] text-white">
       <OrganizerHeader />
 
-      <main className="flex-1 container-main py-8 max-w-4xl">
+      <main className="container-main py-8 flex-1">
+        {/* Back Link */}
         <button
           onClick={() => navigate('/organizer')}
           className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-6"
         >
-          <ArrowLeft size={14} /> Back to Dashboard
+          <ArrowLeft size={15} />
+          Back to Organizer Dashboard
         </button>
 
-        {isPublished ? (
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl p-8 lg:p-12 text-center space-y-6 animate-fade-up">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
-              <CheckCircle2 size={36} />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold font-poppins text-white">✓ Event Published Successfully!</h1>
-              <p className="text-sm text-slate-300 mt-2 max-w-md mx-auto">
-                <span className="font-semibold text-purple-300">{title}</span> has been published and is now open for campus registrations.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 pt-4">
-              <button
-                onClick={() => navigate('/organizer')}
-                className="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm transition-colors border border-slate-700"
-              >
-                Back to Dashboard
-              </button>
-              <button
-                onClick={() => navigate('/organizer/events/org-evt-1')}
-                className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition-colors shadow-md"
-              >
-                Manage Event
-              </button>
-            </div>
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Header Title */}
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-poppins text-white">
+              Create New College Event
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Configure event format (Solo/Team, Online/Offline), upload banner images, and set seating capacities.
+            </p>
           </div>
-        ) : (
-          <form onSubmit={handlePublish} className="space-y-8">
-            <div className="border-b border-slate-800 pb-4">
-              <h1 className="text-2xl lg:text-3xl font-bold font-poppins text-white">Create New Event</h1>
-              <p className="text-xs lg:text-sm text-slate-400 mt-1">Create and publish your next campus event for KSR students.</p>
-            </div>
 
-            {/* SECTION 1: EVENT INFORMATION */}
-            <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl p-6 space-y-5">
-              <h2 className="text-base font-bold font-poppins text-purple-400 flex items-center gap-2">
-                <Calendar size={18} /> 1. Event Information
+          {/* Alerts */}
+          {error && (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 flex items-center gap-3">
+              <AlertCircle size={18} className="flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 text-xs text-green-400 flex items-center gap-3">
+              <CheckCircle2 size={18} className="flex-shrink-0" />
+              <span>Event successfully created and published! Redirecting to dashboard...</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* ── 1. Basic Info ── */}
+            <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-6 space-y-5 shadow-lg">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                <Sparkles size={16} /> 1. Basic Event Information
               </h2>
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-300">Event Banner Image</label>
-                <div className="relative h-44 rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/60 flex flex-col items-center justify-center text-center p-4 hover:border-purple-500/50 transition-colors">
-                  <img src={bannerUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover rounded-xl opacity-30" />
-                  <Upload size={24} className="text-purple-400 z-10 mb-2" />
-                  <p className="text-xs font-semibold text-white z-10">Click or drag image to upload banner</p>
-                  <p className="text-[10px] text-slate-400 z-10 mt-1">Recommended: 1200 x 600 px (Max 5MB)</p>
-                </div>
-              </div>
+              <div className="space-y-4">
+                <Input
+                  label="Event Title"
+                  id="event-title"
+                  value={form.title}
+                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="e.g. Autonomous AI Hackathon 2026"
+                  required
+                />
 
-              <Input
-                label="Event Title"
-                placeholder="e.g. AI & Innovation Workshop 2024"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                error={errors.title}
-                required
-              />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      Category <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      value={form.category}
+                      onChange={e => setForm(p => ({ ...p, category: e.target.value as EventCategory }))}
+                      className="w-full h-11 px-3 rounded-xl bg-[#0B1329] border border-[#1E2D52] text-xs text-white focus:outline-none focus:border-blue-500"
+                    >
+                      {CATEGORIES.map(cat => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
                   <Input
-                    label="Short Description"
-                    placeholder="Brief summary for event cards..."
-                    value={shortDesc}
-                    onChange={e => setShortDesc(e.target.value)}
-                    error={errors.shortDesc}
+                    label="Organizing Club / Association"
+                    id="event-club"
+                    value={form.organizerClub}
+                    onChange={e => setForm(p => ({ ...p, organizerClub: e.target.value }))}
+                    placeholder="e.g. KSRCE ACM Student Chapter"
+                    leftIcon={<Building size={15} />}
                     required
                   />
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-300 mb-1.5 block">Category *</label>
-                  <select
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-slate-800 text-white"
-                  >
-                    {['Technical', 'Hackathon', 'Workshop', 'Seminar', 'Cultural', 'Exhibition', 'Sports'].map(c => (
-                      <option key={c} value={c}>{c}</option>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Full Description <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={form.description}
+                    onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                    placeholder="Describe agenda, prerequisites, prizes, and schedule highlights..."
+                    className="w-full p-3 rounded-xl bg-[#0B1329] border border-[#1E2D52] text-xs text-white focus:outline-none focus:border-blue-500 placeholder-slate-500"
+                    required
+                  />
+                </div>
+
+                <Input
+                  label="Short Tagline (Optional)"
+                  id="event-short-desc"
+                  value={form.shortDescription}
+                  onChange={e => setForm(p => ({ ...p, shortDescription: e.target.value }))}
+                  placeholder="One sentence summary for event preview cards"
+                />
+              </div>
+            </div>
+
+            {/* ── 2. Mode of Event & Participation Type ── */}
+            <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-6 space-y-5 shadow-lg">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                <Globe size={16} /> 2. Event Mode & Participation Format
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Event Mode (Offline, Online, Hybrid) */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Event Mode <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'offline', label: 'Offline', icon: <Building size={14} />, desc: 'On-Campus Venue' },
+                      { id: 'online', label: 'Online', icon: <Laptop size={14} />, desc: 'Virtual / Meet' },
+                      { id: 'hybrid', label: 'Hybrid', icon: <Globe size={14} />, desc: 'Dual Mode' },
+                    ].map(mode => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setForm(p => ({ ...p, eventMode: mode.id as any }))}
+                        className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                          form.eventMode === mode.id
+                            ? 'bg-blue-600 border-blue-500 text-white shadow-md'
+                            : 'bg-[#0B1329] border-[#1E2D52] text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {mode.icon}
+                        <span className="text-xs font-bold">{mode.label}</span>
+                        <span className="text-[10px] opacity-75">{mode.desc}</span>
+                      </button>
                     ))}
-                  </select>
+                  </div>
+                </div>
+
+                {/* Participation Type (Solo vs Team) */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Participation Format <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setForm(p => ({ ...p, participationType: 'solo' }))}
+                      className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                        form.participationType === 'solo'
+                          ? 'bg-blue-600 border-blue-500 text-white shadow-md'
+                          : 'bg-[#0B1329] border-[#1E2D52] text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <User size={16} />
+                      <span className="text-xs font-bold">Solo / Individual</span>
+                      <span className="text-[10px] opacity-75">1 participant per ticket</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setForm(p => ({ ...p, participationType: 'team' }))}
+                      className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                        form.participationType === 'team'
+                          ? 'bg-blue-600 border-blue-500 text-white shadow-md'
+                          : 'bg-[#0B1329] border-[#1E2D52] text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Users2 size={16} />
+                      <span className="text-xs font-bold">Team Event</span>
+                      <span className="text-[10px] opacity-75">Group registration</span>
+                    </button>
+                  </div>
+
+                  {form.participationType === 'team' && (
+                    <div className="pt-2 animate-slide-in">
+                      <Input
+                        label="Maximum Team Size (Members)"
+                        type="number"
+                        id="team-size"
+                        value={form.teamSize}
+                        onChange={e => setForm(p => ({ ...p, teamSize: e.target.value }))}
+                        placeholder="e.g. 4"
+                        min="2"
+                        max="10"
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── 3. Schedule & Venue (React Calendar / DateTime) ── */}
+            <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-6 space-y-5 shadow-lg">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                <Calendar size={16} /> 3. Schedule & Venue Details
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Event Start Date & Time <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.eventStart}
+                    onChange={e => setForm(p => ({ ...p, eventStart: e.target.value }))}
+                    className="w-full h-11 px-3 rounded-xl bg-[#0B1329] border border-[#1E2D52] text-xs text-white focus:outline-none focus:border-blue-500"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Event End Date & Time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.eventEnd}
+                    onChange={e => setForm(p => ({ ...p, eventEnd: e.target.value }))}
+                    className="w-full h-11 px-3 rounded-xl bg-[#0B1329] border border-[#1E2D52] text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    Registration Deadline
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.registrationDeadline}
+                    onChange={e => setForm(p => ({ ...p, registrationDeadline: e.target.value }))}
+                    className="w-full h-11 px-3 rounded-xl bg-[#0B1329] border border-[#1E2D52] text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
                 </div>
               </div>
 
-              <Textarea
-                label="Full Event Description"
-                rows={4}
-                placeholder="Detailed information about speakers, agenda, prerequisites..."
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                error={errors.description}
-                required
-              />
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label={form.eventMode === 'online' ? 'Meeting Link / Platform' : 'Venue / Hall Location'}
+                  id="event-venue"
+                  value={form.venue}
+                  onChange={e => setForm(p => ({ ...p, venue: e.target.value }))}
+                  placeholder={form.eventMode === 'online' ? 'e.g. Google Meet: meet.google.com/xyz' : 'e.g. Main Auditorium, KSRCE Campus'}
+                  leftIcon={<MapPin size={15} />}
+                  required
+                />
 
-            {/* SECTION 2: DATE & VENUE */}
-            <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl p-6 space-y-5">
-              <h2 className="text-base font-bold font-poppins text-purple-400 flex items-center gap-2">
-                <MapPin size={18} /> 2. Date & Venue Settings
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
-                  label="Event Date"
-                  type="date"
-                  value={date}
-                  onChange={e => setDate(e.target.value)}
-                  error={errors.date}
-                  required
-                />
-                <Input
-                  label="Start Time"
-                  type="time"
-                  value={startTime}
-                  onChange={e => setStartTime(e.target.value)}
-                  error={errors.startTime}
-                  required
-                />
-                <Input
-                  label="End Time"
-                  type="time"
-                  value={endTime}
-                  onChange={e => setEndTime(e.target.value)}
-                  error={errors.endTime}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input
-                  label="Venue Location"
-                  placeholder="e.g. Main Auditorium / Lab 3"
-                  value={venue}
-                  onChange={e => setVenue(e.target.value)}
-                  error={errors.venue}
-                  required
-                />
-                <Input
-                  label="Maximum Capacity"
+                  label="Total Seating Capacity"
                   type="number"
-                  placeholder="e.g. 200"
-                  value={capacity}
-                  onChange={e => setCapacity(e.target.value)}
-                  error={errors.capacity}
-                  required
-                />
-                <Input
-                  label="Registration Deadline"
-                  type="date"
-                  value={deadline}
-                  onChange={e => setDeadline(e.target.value)}
-                  error={errors.deadline}
+                  id="event-capacity"
+                  value={form.capacity}
+                  onChange={e => setForm(p => ({ ...p, capacity: e.target.value }))}
+                  placeholder="e.g. 150"
+                  leftIcon={<Users size={15} />}
                   required
                 />
               </div>
             </div>
 
-            {/* SECTION 3: ORGANIZER INFORMATION */}
-            <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl p-6 space-y-5">
-              <h2 className="text-base font-bold font-poppins text-purple-400 flex items-center gap-2">
-                <Users size={18} /> 3. Organizer Information
+            {/* ── 4. Image Upload (Direct File Selector / Supabase Storage) ── */}
+            <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-6 space-y-5 shadow-lg">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                <Image size={16} /> 4. Event Banner Image Upload
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Organizer / Club Name"
-                  value={club}
-                  onChange={e => setClub(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Faculty / Student In-charge"
-                  value={organizerName}
-                  onChange={e => setOrganizerName(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Contact Email"
-                  type="email"
-                  value={contactEmail}
-                  onChange={e => setContactEmail(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Contact Phone"
-                  type="tel"
-                  value={contactPhone}
-                  onChange={e => setContactPhone(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* SECTION 4: EVENT SCHEDULE BUILDER */}
-            <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold font-poppins text-purple-400 flex items-center gap-2">
-                  <Clock size={18} /> 4. Event Schedule
-                </h2>
-                <button
-                  type="button"
-                  onClick={addScheduleItem}
-                  className="text-xs font-semibold text-purple-300 hover:text-purple-200 flex items-center gap-1 bg-purple-500/15 border border-purple-500/30 px-3 py-1.5 rounded-lg"
-                >
-                  <Plus size={14} /> Add Agenda Item
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {schedule.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-slate-800/80 rounded-lg border border-slate-700">
-                    <input
-                      type="text"
-                      value={item.time}
-                      onChange={e => {
-                        const newSched = [...schedule];
-                        newSched[index].time = e.target.value;
-                        setSchedule(newSched);
-                      }}
-                      className="w-28 text-xs font-semibold text-white bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5"
+              <div className="space-y-4">
+                {/* File Upload Box */}
+                {bannerPreview ? (
+                  <div className="relative border border-[#1E2D52] rounded-2xl overflow-hidden bg-slate-900 group">
+                    <img
+                      src={bannerPreview}
+                      alt="Banner preview"
+                      className="w-full h-56 object-cover"
                     />
-                    <input
-                      type="text"
-                      value={item.title}
-                      onChange={e => {
-                        const newSched = [...schedule];
-                        newSched[index].title = e.target.value;
-                        setSchedule(newSched);
-                      }}
-                      className="flex-1 text-xs text-white bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeScheduleItem(index)}
-                      className="text-slate-400 hover:text-rose-400 p-1"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <label
+                        htmlFor="banner-file-input"
+                        className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-500"
+                      >
+                        Change Image
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBannerFile(null);
+                          setBannerPreview(null);
+                          setForm(p => ({ ...p, bannerUrl: '' }));
+                        }}
+                        className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-semibold hover:bg-red-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  <label
+                    htmlFor="banner-file-input"
+                    className="border-2 border-dashed border-[#1E2D52] hover:border-blue-500 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-[#0B1329] hover:bg-blue-950/20 transition-colors"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-400 flex items-center justify-center mb-3">
+                      <UploadCloud size={24} />
+                    </div>
+                    <p className="text-xs font-bold text-white">
+                      Click or drag to upload event banner image
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      PNG, JPG, JPEG or WEBP (Recommended: 1200 x 600 px)
+                    </p>
+                  </label>
+                )}
+
+                <input
+                  type="file"
+                  id="banner-file-input"
+                  accept="image/*"
+                  onChange={handleBannerFileChange}
+                  className="hidden"
+                />
+
+                {/* Direct Image URL Alternative */}
+                <div className="pt-2">
+                  <p className="text-[11px] text-slate-400 mb-1.5">Or paste a direct banner image URL:</p>
+                  <Input
+                    id="event-banner-url"
+                    value={form.bannerUrl}
+                    onChange={e => {
+                      setForm(p => ({ ...p, bannerUrl: e.target.value }));
+                      if (e.target.value) setBannerPreview(e.target.value);
+                    }}
+                    placeholder="https://images.unsplash.com/photo-..."
+                  />
+                </div>
               </div>
             </div>
 
-            {/* FORM ACTIONS */}
+            {/* ── 5. Payment & Fee Settings ── */}
+            <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-6 space-y-5 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                    <DollarSign size={16} /> 5. Entry Fee & Google Pay Settings
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Enable if participants need to pay an entry fee via Google Pay / UPI.
+                  </p>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isPaid}
+                    onChange={e => setForm(p => ({ ...p, isPaid: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {form.isPaid && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-[#1E2D52] animate-slide-in">
+                  <Input
+                    label="Entry Fee Amount (₹)"
+                    type="number"
+                    id="event-fee"
+                    value={form.entryFee}
+                    onChange={e => setForm(p => ({ ...p, entryFee: e.target.value }))}
+                    placeholder="e.g. 150"
+                    required={form.isPaid}
+                  />
+
+                  <Input
+                    label="Google Pay Mobile Number"
+                    type="tel"
+                    id="event-gpay"
+                    value={form.gpayNumber}
+                    onChange={e => setForm(p => ({ ...p, gpayNumber: e.target.value }))}
+                    placeholder="9876543210"
+                    required={form.isPaid}
+                  />
+
+                  <Input
+                    label="UPI ID"
+                    id="event-upi"
+                    value={form.gpayUpiId}
+                    onChange={e => setForm(p => ({ ...p, gpayUpiId: e.target.value }))}
+                    placeholder="organizer@upi"
+                    required={form.isPaid}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Submit */}
             <div className="flex items-center justify-end gap-3 pt-4">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="md"
                 onClick={() => navigate('/organizer')}
-                className="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-semibold transition-colors"
+                className="bg-[#111C3A] text-white border-[#1E2D52]"
               >
-                Save Draft
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreviewOpen(true)}
-                className="px-5 py-2.5 rounded-lg border border-slate-700 text-white hover:bg-slate-800 text-sm font-semibold transition-colors flex items-center gap-1.5"
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                loading={submitting || uploadingImage}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg shadow-blue-600/30 px-8"
               >
-                <Eye size={15} /> Preview
-              </button>
-              <MagnetButton magnetStrength={0.25}>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold shadow-md shadow-purple-600/30 transition-all"
-                >
-                  Publish Event
-                </button>
-              </MagnetButton>
+                {uploadingImage ? 'Uploading Banner...' : submitting ? 'Publishing Event...' : 'Publish Event'}
+              </Button>
             </div>
           </form>
-        )}
-      </main>
-
-      <Modal
-        isOpen={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        title="Event Preview"
-        size="md"
-      >
-        <div className="space-y-4 text-white">
-          <img src={bannerUrl} alt="Banner" className="w-full h-40 object-cover rounded-xl" />
-          <span className="text-xs font-semibold px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            {category}
-          </span>
-          <h2 className="text-xl font-bold font-poppins text-white">{title || 'Untitled Event'}</h2>
-          <p className="text-xs text-slate-300 leading-relaxed">{description || 'No description provided.'}</p>
-          <div className="grid grid-cols-2 gap-2 text-xs bg-slate-800 p-3 rounded-lg border border-slate-700">
-            <div><span className="font-semibold text-slate-400">Date:</span> {date || 'N/A'}</div>
-            <div><span className="font-semibold text-slate-400">Venue:</span> {venue || 'N/A'}</div>
-            <div><span className="font-semibold text-slate-400">Capacity:</span> {capacity}</div>
-            <div><span className="font-semibold text-slate-400">Organizer:</span> {club}</div>
-          </div>
-          <Button variant="primary" className="w-full justify-center mt-2" onClick={() => setPreviewOpen(false)}>
-            Close Preview
-          </Button>
         </div>
-      </Modal>
+      </main>
 
       <Footer />
     </div>

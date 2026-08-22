@@ -1,459 +1,395 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar, Clock, MapPin, Plus, FileText, QrCode, Ticket, ArrowRight,
-  TrendingUp, CheckCircle2, ChevronRight, Zap
+  Calendar, Plus, Users, CheckCircle2, DollarSign,
+  ArrowRight, Search, Download, QrCode, Edit3, Trash2, MapPin, X
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { QRCodeSVG } from 'qrcode.react';
 import { OrganizerHeader } from './OrganizerHeader';
 import { Footer } from '@/components/layout/Footer';
-import { MOCK_ORGANIZER_EVENTS, type OrganizerEvent } from './organizerData';
-import { SplitText } from '@/components/reactbits/SplitText';
-import { AnimatedCounter } from '@/components/reactbits/AnimatedCounter';
-import { SpotlightCard } from '@/components/reactbits/SpotlightCard';
-import { MagnetButton } from '@/components/reactbits/MagnetButton';
-import { ShinyText } from '@/components/reactbits/ShinyText';
-import { TiltedCard } from '@/components/reactbits/TiltedCard';
-
-const STATUS_BADGE_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
-  'Registration Open': { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30' },
-  'Almost Full': { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/30' },
-  'Full': { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/30' },
-  'Completed': { bg: 'bg-slate-800', text: 'text-slate-400', border: 'border-slate-700' },
-  'Draft': { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'border-purple-500/30' },
-};
+import { Button } from '@/components/ui/Button';
+import { CategoryBadge } from '@/components/events/CategoryBadge';
+import { formatEventDateRange } from '@/utils/dateFormatter';
+import {
+  getOrganizerEvents,
+  deleteOrganizerEvent,
+  downloadQRCodeAsImage,
+  exportRegistrationsToCSV,
+  getOrganizerRegistrations,
+  type OrganizerEventStats,
+} from '@/services/organizerService';
+import { useAuth } from '@/hooks/useAuth';
 
 export function OrganizerDashboard() {
   const navigate = useNavigate();
-  const [events] = useState<OrganizerEvent[]>(MOCK_ORGANIZER_EVENTS);
+  const { user } = useAuth();
 
-  const activeEvents = events.filter(e => e.status !== 'Completed');
-  const completedEvents = events.filter(e => e.status === 'Completed');
+  const [events, setEvents] = useState<OrganizerEventStats[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const chartData = [
-    { name: 'Week 1', registered: 210, attended: 180 },
-    { name: 'Week 2', registered: 450, attended: 390 },
-    { name: 'Week 3', registered: 820, attended: 670 },
-    { name: 'Week 4', registered: 1284, attended: 982 },
-  ];
+  // QR Modal State
+  const [qrModalEvent, setQrModalEvent] = useState<OrganizerEventStats | null>(null);
+
+  // Load events
+  const loadData = () => {
+    setLoading(true);
+    getOrganizerEvents()
+      .then(setEvents)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [user]);
+
+  // Handle Event Delete
+  const handleDelete = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete event "${title}"? This cannot be undone.`)) {
+      return;
+    }
+    const { success, error } = await deleteOrganizerEvent(id);
+    if (success) {
+      setEvents(prev => prev.filter(e => e.id !== id));
+    } else {
+      alert(`Error deleting event: ${error}`);
+    }
+  };
+
+  // Filtered Events
+  const filteredEvents = events.filter(e => {
+    const matchSearch =
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.venue.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = selectedCategory === 'All' || e.category === selectedCategory;
+    return matchSearch && matchCategory;
+  });
+
+  // Calculate Metrics
+  const totalEvents = events.length;
+  const totalRegistrations = events.reduce((acc, e) => acc + (e.registered_count || 0), 0);
+  const totalAttended = events.reduce((acc, e) => acc + (e.attended_count || 0), 0);
+  const totalRevenue = events.reduce((acc, e) => acc + (e.total_revenue || 0), 0);
+
+  // Quick Export
+  const handleQuickExport = async () => {
+    const allRegs = await getOrganizerRegistrations();
+    exportRegistrationsToCSV(allRegs, 'All_Events_Registrations');
+  };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-white">
+    <div className="flex flex-col min-h-screen bg-[#0B1329] text-white">
       <OrganizerHeader />
 
-      <main className="flex-1">
-        {/* ═══════════════════════════════════════════════════════════════════
-            1. HERO SECTION — Dark Theme Welcome & Today's Event Card
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="bg-slate-900 border-b border-slate-800 py-10 lg:py-12 overflow-hidden relative">
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="container-main relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <main className="container-main py-8 flex-1 space-y-8">
+        {/* ─── Hero Welcome & Quick Stats ─────────────────────────────────── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#1E2D52]">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold font-poppins text-white tracking-tight">
+              Organizer Dashboard
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Manage your college events, monitor live student bookings, and verify attendance.
+            </p>
+          </div>
 
-              {/* Left Column (7 cols): Welcome Text & CTA */}
-              <div className="lg:col-span-7 space-y-5">
-                <div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 text-xs font-semibold uppercase tracking-wider">
-                    <Zap size={13} />
-                    <ShinyText text="EVENT ORGANIZER" speed={3} />
-                  </span>
-                  <h1 className="text-3xl lg:text-4xl font-bold font-poppins text-white mt-3 leading-tight">
-                    <SplitText text="Manage your campus events." delay={0.1} />
-                  </h1>
-                </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-[#111C3A] hover:bg-[#1E2D52] text-white border-[#1E2D52]"
+              leftIcon={<Download size={15} />}
+              onClick={handleQuickExport}
+            >
+              Export CSV
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
+              leftIcon={<Plus size={15} />}
+              onClick={() => navigate('/organizer/events/create')}
+            >
+              Create New Event
+            </Button>
+          </div>
+        </div>
 
-                <p className="text-slate-300 text-sm lg:text-base leading-relaxed max-w-xl">
-                  Create events, track registrations, verify attendance and generate reports from one unified workspace.
-                </p>
-
-                <div className="flex items-center gap-3 pt-2 flex-wrap">
-                  <MagnetButton magnetStrength={0.25}>
-                    <button
-                      onClick={() => navigate('/organizer/events/create')}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm shadow-lg shadow-purple-600/30 transition-all"
-                    >
-                      <Plus size={16} />
-                      + Create Event
-                    </button>
-                  </MagnetButton>
-
-                  <MagnetButton magnetStrength={0.25}>
-                    <button
-                      onClick={() => navigate('/organizer/reports')}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-semibold text-sm transition-all"
-                    >
-                      <FileText size={16} className="text-purple-400" />
-                      View Reports
-                    </button>
-                  </MagnetButton>
-                </div>
+        {/* ─── Metric Cards ───────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Events</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <Calendar size={16} />
               </div>
+            </div>
+            <p className="text-2xl font-bold font-poppins text-white mt-3">{totalEvents}</p>
+            <p className="text-xs text-slate-400 mt-1">Active published & upcoming</p>
+          </div>
 
-              {/* Right Column (5 cols): Today's Event Visual Card */}
-              <div className="lg:col-span-5">
-                <TiltedCard maxTilt={8}>
-                  <SpotlightCard
-                    spotlightColor="rgba(124, 92, 252, 0.2)"
-                    className="bg-slate-800/90 text-white rounded-2xl p-6 shadow-2xl border border-slate-700 relative overflow-hidden"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-[11px] font-bold uppercase tracking-widest text-purple-300 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        TODAY'S EVENT
-                      </span>
-                      <span className="text-xs text-slate-300 bg-slate-700/80 px-2.5 py-0.5 rounded-full border border-slate-600">
-                        Main Auditorium
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-bold font-poppins text-white leading-tight mb-2">
-                      AI & Innovation Workshop
-                    </h3>
-
-                    <div className="flex items-center gap-4 text-xs text-slate-300 mb-5">
-                      <span className="flex items-center gap-1">
-                        <Clock size={13} className="text-purple-400" /> 10:00 AM – 01:00 PM
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar size={13} className="text-purple-400" /> May 28, 2024
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 mb-5 bg-slate-900/60 rounded-xl p-3 border border-slate-700/60">
-                      <div>
-                        <p className="text-[10px] text-slate-400 uppercase font-semibold">Registered</p>
-                        <p className="text-lg font-bold text-white">124 <span className="text-xs text-slate-400 font-normal">/ 200</span></p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-emerald-400 uppercase font-semibold">Checked In</p>
-                        <p className="text-lg font-bold text-emerald-400">98 <span className="text-xs text-emerald-300/70 font-normal">(79%)</span></p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => navigate('/organizer/events/org-evt-1')}
-                      className="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all shadow-md"
-                    >
-                      Manage Event <ArrowRight size={14} />
-                    </button>
-                  </SpotlightCard>
-                </TiltedCard>
+          <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Registrations</span>
+              <div className="w-8 h-8 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center">
+                <Users size={16} />
               </div>
-
             </div>
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            2. METRIC RAIL — 5 Clean Dark Theme Metrics
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="bg-slate-900 border-b border-slate-800 py-6">
-          <div className="container-main">
-            <div className="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-slate-800">
-              {[
-                { label: 'Your Events', val: 12, suffix: '', icon: <Calendar size={18} className="text-purple-400" /> },
-                { label: 'Active Events', val: 3, suffix: '', icon: <Zap size={18} className="text-blue-400" /> },
-                { label: 'Total Registrations', val: 1284, suffix: '', icon: <Ticket size={18} className="text-emerald-400" /> },
-                { label: 'Total Attended', val: 982, suffix: '', icon: <CheckCircle2 size={18} className="text-purple-400" /> },
-                { label: 'Attendance Rate', val: 76.5, suffix: '%', decimals: 1, icon: <TrendingUp size={18} className="text-amber-400" />, trend: '+12.4% this month' },
-              ].map((m) => (
-                <SpotlightCard
-                  key={m.label}
-                  spotlightColor="rgba(124, 92, 252, 0.15)"
-                  className="p-4 sm:px-6 flex flex-col justify-between bg-slate-900"
-                >
-                  <div>
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-semibold mb-1">
-                      {m.icon}
-                      {m.label}
-                    </div>
-                    <p className="text-2xl lg:text-3xl font-bold font-poppins text-white">
-                      <AnimatedCounter to={m.val} suffix={m.suffix} decimals={m.decimals ?? 0} />
-                    </p>
-                  </div>
-                  {m.trend && (
-                    <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1 mt-2">
-                      <TrendingUp size={12} /> {m.trend}
-                    </span>
-                  )}
-                </SpotlightCard>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            3. CURRENT EVENTS SECTION (Active/Approaching)
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="container-main py-10">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl lg:text-2xl font-bold font-poppins text-white">Current Events</h2>
-              <p className="text-xs lg:text-sm text-slate-400 mt-0.5">Events that are currently active or approaching their event date.</p>
-            </div>
+            <p className="text-2xl font-bold font-poppins text-white mt-3">{totalRegistrations}</p>
+            <p className="text-xs text-slate-400 mt-1">Total student bookings</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeEvents.slice(0, 3).map(event => {
-              const cfg = STATUS_BADGE_CONFIG[event.status] ?? STATUS_BADGE_CONFIG['Registration Open'];
-              const regPct = Math.round((event.registered / event.capacity) * 100);
-              return (
-                <SpotlightCard
+          <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Attended</span>
+              <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                <CheckCircle2 size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold font-poppins text-white mt-3">{totalAttended}</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {totalRegistrations > 0 ? `${Math.round((totalAttended / totalRegistrations) * 100)}% attendance rate` : 'No attendees yet'}
+            </p>
+          </div>
+
+          <div className="bg-[#111C3A] border border-[#1E2D52] rounded-2xl p-5 shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</span>
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <DollarSign size={16} />
+              </div>
+            </div>
+            <p className="text-2xl font-bold font-poppins text-white mt-3">₹{totalRevenue}</p>
+            <p className="text-xs text-slate-400 mt-1">Verified GPay & UPI fees</p>
+          </div>
+        </div>
+
+        {/* ─── Search & Category Filters ──────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#111C3A] p-4 rounded-2xl border border-[#1E2D52]">
+          <div className="relative w-full sm:w-80">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by event title or venue..."
+              className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#0B1329] border border-[#1E2D52] text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+            {['All', 'Technical', 'Cultural', 'Sports', 'Workshop', 'Seminar'].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+                  selectedCategory === cat
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-[#0B1329] text-slate-400 hover:text-white border border-[#1E2D52]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ─── Events List ────────────────────────────────────────────────── */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold font-poppins text-white flex items-center gap-2">
+              <Calendar size={18} className="text-blue-400" />
+              Your Created Events ({filteredEvents.length})
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="py-16 text-center text-slate-400 flex flex-col items-center gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+              <span className="text-xs">Loading organizer events from database...</span>
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="bg-[#111C3A] rounded-2xl border border-[#1E2D52] p-12 text-center flex flex-col items-center">
+              <div className="w-14 h-14 rounded-2xl bg-blue-600/10 text-blue-400 flex items-center justify-center mb-4">
+                <Calendar size={28} />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">No Events Found</h3>
+              <p className="text-xs text-slate-400 max-w-sm mb-5 leading-relaxed">
+                {search || selectedCategory !== 'All'
+                  ? 'No events matched your current filters. Try changing your search query.'
+                  : "You haven't created any events yet. Create your first college event to get started!"}
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus size={14} />}
+                onClick={() => navigate('/organizer/events/create')}
+              >
+                Create Event Now
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map(event => (
+                <div
                   key={event.id}
-                  spotlightColor="rgba(124, 92, 252, 0.15)"
-                  className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl transition-all flex flex-col overflow-hidden"
+                  className="bg-[#111C3A] border border-[#1E2D52] hover:border-blue-500/50 rounded-2xl overflow-hidden shadow-xl flex flex-col justify-between group transition-all duration-200"
                 >
-                  <div className="relative h-40 overflow-hidden bg-slate-800">
-                    <img src={event.thumbnail} alt={event.title} className="w-full h-full object-cover" />
-                    <span className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                      {event.status}
-                    </span>
-                    <span className="absolute bottom-3 left-3 text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-950/80 text-white backdrop-blur-xs">
-                      {event.category}
-                    </span>
+                  {/* Card Banner Image */}
+                  <div className="relative h-40 w-full bg-slate-800 overflow-hidden">
+                    <img
+                      src={event.banner_url || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=600&fit=crop'}
+                      alt={event.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-3 right-3 z-10">
+                      <CategoryBadge category={event.category} />
+                    </div>
+                    {event.is_paid && (
+                      <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-bold text-amber-300">
+                        ₹{event.entry_fee} Entry Fee
+                      </div>
+                    )}
                   </div>
 
+                  {/* Body Content */}
                   <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div>
-                      <h3 className="font-bold font-poppins text-base text-white line-clamp-1">{event.title}</h3>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2">{event.shortDescription}</p>
+                    <div className="space-y-2">
+                      <h3 className="text-base font-bold font-poppins text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+                        {event.title}
+                      </h3>
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        {event.short_description || event.description}
+                      </p>
+                    </div>
 
-                      <div className="mt-3 space-y-1.5 text-xs text-slate-300">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={13} className="text-purple-400" /> {event.date}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={13} className="text-purple-400" /> {event.time}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin size={13} className="text-purple-400" /> {event.venue}
-                        </div>
+                    {/* Metadata Details */}
+                    <div className="space-y-1.5 text-xs text-slate-300 border-t border-[#1E2D52] pt-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={13} className="text-blue-400 flex-shrink-0" />
+                        <span className="truncate">{formatEventDateRange(event.event_start, event.event_end)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin size={13} className="text-blue-400 flex-shrink-0" />
+                        <span className="truncate">{event.venue}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-2 border-t border-slate-800 pt-3">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400 font-medium">{event.registered} / {event.capacity} Registered</span>
-                        <span className="font-bold text-purple-400">{regPct}%</span>
+                    {/* Capacity & Attendance Stats */}
+                    <div className="bg-[#0B1329] p-3 rounded-xl border border-[#1E2D52] space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Registrations:</span>
+                        <span className="font-bold text-white">
+                          {event.registered_count} / {event.capacity}
+                        </span>
                       </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-purple-500 rounded-full" style={{ width: `${regPct}%` }} />
+                      <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full"
+                          style={{ width: `${Math.min(100, event.registration_percentage || 0)}%` }}
+                        />
                       </div>
+                    </div>
 
-                      <div className="flex gap-2 pt-2">
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#1E2D52]">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setQrModalEvent(event)}
+                          title="View Venue Check-in QR Code"
+                          className="p-2 rounded-lg bg-[#0B1329] border border-[#1E2D52] hover:border-blue-500 text-blue-400 hover:text-white transition-colors"
+                        >
+                          <QrCode size={15} />
+                        </button>
                         <button
                           onClick={() => navigate(`/organizer/events/${event.id}`)}
-                          className="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-all flex items-center justify-center gap-1"
+                          title="Edit Event"
+                          className="p-2 rounded-lg bg-[#0B1329] border border-[#1E2D52] hover:border-blue-500 text-slate-300 hover:text-white transition-colors"
                         >
-                          Manage Event
+                          <Edit3 size={15} />
                         </button>
                         <button
-                          onClick={() => navigate(`/organizer/registrations?event=${event.id}`)}
-                          className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700 transition-all"
+                          onClick={() => handleDelete(event.id, event.title)}
+                          title="Delete Event"
+                          className="p-2 rounded-lg bg-[#0B1329] border border-[#1E2D52] hover:border-red-500 text-red-400 hover:text-white transition-colors"
                         >
-                          Registrations
+                          <Trash2 size={15} />
                         </button>
                       </div>
+
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white border-blue-500/30"
+                        rightIcon={<ArrowRight size={13} />}
+                        onClick={() => navigate(`/organizer/events/${event.id}`)}
+                      >
+                        Manage
+                      </Button>
                     </div>
                   </div>
-                </SpotlightCard>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            4. YOUR EVENTS LIST TABLE
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="container-main py-6">
-          <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-bold font-poppins text-white">Your Events</h2>
-                <p className="text-xs text-slate-400">Comprehensive list of all campus events organized by your club.</p>
-              </div>
-              <button
-                onClick={() => navigate('/organizer/events')}
-                className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1"
-              >
-                View All <ChevronRight size={14} />
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-800/60 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                    <th className="px-6 py-3">Event</th>
-                    <th className="px-4 py-3">Category</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Venue</th>
-                    <th className="px-4 py-3">Registrations</th>
-                    <th className="px-4 py-3">Attendance</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-6 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-sm">
-                  {events.map(event => {
-                    const cfg = STATUS_BADGE_CONFIG[event.status] ?? STATUS_BADGE_CONFIG['Registration Open'];
-                    return (
-                      <tr key={event.id} className="hover:bg-purple-950/20 transition-colors">
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <img src={event.thumbnail} alt={event.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                            <div>
-                              <p className="font-semibold text-white leading-tight">{event.title}</p>
-                              <p className="text-xs text-slate-400">{event.organizerClub}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5 text-xs text-slate-300 font-medium">{event.category}</td>
-                        <td className="px-4 py-3.5 text-xs text-slate-300">{event.date}</td>
-                        <td className="px-4 py-3.5 text-xs text-slate-300">{event.venue}</td>
-                        <td className="px-4 py-3.5 text-xs font-semibold text-white">{event.registered} / {event.capacity}</td>
-                        <td className="px-4 py-3.5 text-xs font-semibold text-emerald-400">{event.attended} ({Math.round((event.attended / event.registered) * 100)}%)</td>
-                        <td className="px-4 py-3.5">
-                          <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                            {event.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3.5 text-right">
-                          <button
-                            onClick={() => navigate(`/organizer/events/${event.id}`)}
-                            className="px-3 py-1.5 rounded bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 text-xs font-semibold border border-purple-500/30 transition-colors"
-                          >
-                            Manage
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            5. REGISTRATION OVERVIEW CHART & QUICK ACTIONS
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="container-main py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            {/* Left: Recharts Registration Trend (8 cols) */}
-            <div className="lg:col-span-8 bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-bold font-poppins text-white">Registration & Attendance Trend</h3>
-                  <p className="text-xs text-slate-400">Monthly conversion rate overview</p>
                 </div>
-                <span className="text-xs font-semibold text-purple-300 bg-purple-500/15 px-2.5 py-1 rounded-full border border-purple-500/30">
-                  This Month
-                </span>
-              </div>
-
-              <div className="h-60">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="regGradDark" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="attGradDark" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#1E293B', borderColor: '#334155', borderRadius: 8, color: '#FFF' }} />
-                    <Area type="monotone" dataKey="registered" stroke="#8B5CF6" strokeWidth={2} fillOpacity={1} fill="url(#regGradDark)" name="Registered" />
-                    <Area type="monotone" dataKey="attended" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#attGradDark)" name="Attended" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              ))}
             </div>
+          )}
+        </div>
 
-            {/* Right: Quick Actions Grid (4 cols) */}
-            <div className="lg:col-span-4 bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-xl space-y-4">
-              <h3 className="text-base font-bold font-poppins text-white">Quick Actions</h3>
+        {/* ─── Check-in QR Code Modal ─────────────────────────────────────── */}
+        {qrModalEvent && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[#111C3A] border border-[#1E2D52] rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-slide-in text-center relative">
+              <button
+                onClick={() => setQrModalEvent(null)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white p-1"
+              >
+                <X size={18} />
+              </button>
 
-              <div className="grid grid-cols-1 gap-2.5">
-                {[
-                  { label: 'Create New Event', icon: <Plus size={16} />, path: '/organizer/events/create', color: 'text-purple-400 bg-purple-500/15' },
-                  { label: 'View Registrations', icon: <Ticket size={16} />, path: '/organizer/registrations', color: 'text-blue-400 bg-blue-500/15' },
-                  { label: 'Verify Attendance', icon: <QrCode size={16} />, path: '/organizer/attendance', color: 'text-emerald-400 bg-emerald-500/15' },
-                  { label: 'Generate Reports', icon: <FileText size={16} />, path: '/organizer/reports', color: 'text-amber-400 bg-amber-500/15' },
-                ].map(action => (
-                  <button
-                    key={action.label}
-                    onClick={() => navigate(action.path)}
-                    className="flex items-center justify-between p-3 rounded-lg border border-slate-800 hover:border-purple-500/40 hover:bg-slate-800 transition-all text-left group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${action.color}`}>
-                        {action.icon}
-                      </div>
-                      <span className="text-xs font-semibold text-slate-200 group-hover:text-purple-300">{action.label}</span>
-                    </div>
-                    <ChevronRight size={14} className="text-slate-500 group-hover:text-purple-400" />
-                  </button>
-                ))}
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto mb-3">
+                <QrCode size={24} />
               </div>
-            </div>
 
-          </div>
-        </section>
+              <h3 className="text-lg font-bold font-poppins text-white">
+                Official Venue Check-In QR
+              </h3>
+              <p className="text-xs text-blue-300 font-semibold mt-0.5 line-clamp-1">
+                {qrModalEvent.title}
+              </p>
+              <p className="text-xs text-slate-400 mt-1 mb-5">
+                Display or print this QR at the venue entrance. Attendees can scan this code to mark attendance.
+              </p>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            6. EVENT HISTORY (Completed Events)
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section className="container-main py-6 pb-12">
-          <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl p-6">
-            <h3 className="text-base font-bold font-poppins text-white mb-4">Event History</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-800/60 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                    <th className="px-4 py-3">Event</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Registrations</th>
-                    <th className="px-4 py-3">Attendance</th>
-                    <th className="px-4 py-3">Attendance Rate</th>
-                    <th className="px-4 py-3">Report Status</th>
-                    <th className="px-4 py-3 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {completedEvents.map(event => (
-                    <tr key={event.id} className="hover:bg-slate-800/60">
-                      <td className="px-4 py-3 font-semibold text-white">{event.title}</td>
-                      <td className="px-4 py-3 text-slate-400">{event.date}</td>
-                      <td className="px-4 py-3 text-slate-300">{event.registered}</td>
-                      <td className="px-4 py-3 text-slate-300">{event.attended}</td>
-                      <td className="px-4 py-3 font-bold text-emerald-400">{Math.round((event.attended / event.registered) * 100)}%</td>
-                      <td className="px-4 py-3">
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                          Report Ready
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => navigate('/organizer/reports')}
-                          className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs border border-slate-700 transition-colors"
-                        >
-                          View Report
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {/* QR Image Box */}
+              <div className="bg-white p-4 rounded-2xl inline-block shadow-lg mb-5">
+                <QRCodeSVG
+                  id={`qr-svg-${qrModalEvent.id}`}
+                  value={JSON.stringify({
+                    type: 'campusconnect_hall_checkin',
+                    event_id: qrModalEvent.id,
+                    event_title: qrModalEvent.title,
+                    venue: qrModalEvent.venue,
+                  })}
+                  size={200}
+                  level="H"
+                  bgColor="#FFFFFF"
+                  fgColor="#0B1329"
+                />
+              </div>
+
+              {/* Download PNG Button */}
+              <Button
+                variant="primary"
+                size="md"
+                className="w-full justify-center bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg"
+                leftIcon={<Download size={16} />}
+                onClick={() => downloadQRCodeAsImage(`qr-svg-${qrModalEvent.id}`, qrModalEvent.title)}
+              >
+                Download QR Code as Image (PNG)
+              </Button>
             </div>
           </div>
-        </section>
+        )}
       </main>
 
       <Footer />
