@@ -100,12 +100,6 @@ export function Header({
               My Tickets
             </Link>
           )}
-          <button
-            onClick={() => handleScrollTo('contact')}
-            className="hover:text-blue-400 transition-colors uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer"
-          >
-            Contact
-          </button>
         </nav>
 
         {/* ── RIGHT: Actions ──────────────────────────────────────────── */}
