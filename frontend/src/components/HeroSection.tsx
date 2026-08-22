@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -8,8 +9,27 @@ import { CategoryBadge } from '@/components/events/CategoryBadge';
 import { RegistrationProgress } from '@/components/events/RegistrationProgress';
 import { EventCountdown } from '@/components/events/EventCountdown';
 
-export function HeroSection() {
+interface HeroSectionProps {
+  events?: Event[];
+}
+
+export function HeroSection({ events = [] }: HeroSectionProps) {
   const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const displayEvents = events.slice(0, 5);
+  const activeEvent = displayEvents[currentIndex] || displayEvents[0] || null;
+
+  useEffect(() => {
+    if (displayEvents.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % displayEvents.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [displayEvents.length]);
+
+  const thumbnail = activeEvent ? getEventThumbnail(activeEvent) : '';
+  const dateLabel = activeEvent ? formatEventDateRange(activeEvent.event_start, activeEvent.event_end) : '';
 
   return (
     <section
@@ -63,7 +83,7 @@ export function HeroSection() {
                     <h1 className="text-3xl md:text-4xl font-extrabold text-white mt-1.5 leading-tight tracking-tight">
                       {activeEvent.title}
                     </h1>
-                    <p className="text-sm md:text-base text-slate-350 mt-3 line-clamp-3 leading-relaxed">
+                    <p className="text-sm md:text-base text-slate-300 mt-3 line-clamp-3 leading-relaxed">
                       {activeEvent.short_description ?? activeEvent.description}
                     </p>
                   </div>
