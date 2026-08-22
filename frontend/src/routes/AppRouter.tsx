@@ -23,6 +23,7 @@ const MyRegistrationsPage = lazy(() =>
 const TicketPage = lazy(() =>
   import('@/pages/student/TicketPage').then(m => ({ default: m.TicketPage }))
 );
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 
 // ── Page-level loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -81,6 +82,9 @@ export function AppRouter() {
               </ProtectedRoute>
             }
           />
+
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
 
           {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
