@@ -37,6 +37,10 @@ export interface Event {
   organizer_name?: string;
   registration_deadline?: string; // ISO datetime
   status: EventStatus;
+  entry_fee?: number;
+  is_paid?: boolean;
+  gpay_number?: string;
+  gpay_upi_id?: string;
   created_at: string;
   // Computed
   registration_status?: RegistrationStatus;
@@ -68,6 +72,8 @@ export interface StudentProfile {
 // ─── Registration ─────────────────────────────────────────────────────────────
 
 export type TicketStatus = 'registered' | 'attended' | 'cancelled';
+export type PaymentStatus = 'free' | 'pending_verification' | 'verified' | 'rejected';
+export type PaymentMode = 'free' | 'gpay_upi' | 'cash';
 
 export interface Registration {
   id: string;
@@ -75,6 +81,9 @@ export interface Registration {
   student_id: string;
   ticket_code: string;   // e.g. CC-EVT-9F8A62BC
   status: TicketStatus;
+  payment_mode?: PaymentMode;
+  payment_proof_url?: string;
+  payment_status?: PaymentStatus;
   registered_at: string;
   // Joined
   event?: Event;
@@ -112,22 +121,33 @@ export interface FilterState {
   sort: SortOption;
 }
 
-// ─── API Response Wrappers ──────────────────────────────────────────────────
+// ─── Direct Registration Payload ────────────────────────────────────────────
 
-export interface ApiResponse<T> {
-  data: T | null;
-  error: string | null;
-  loading: boolean;
+export interface DirectRegistrationPayload {
+  event_id: string;
+  full_name: string;
+  email: string;
+  roll_number: string;
+  department: string;
+  year_of_study: number;
+  phone?: string;
+  payment_mode?: PaymentMode;
+  payment_proof_url?: string;
 }
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  count: number;
-  page: number;
-  pageSize: number;
+export interface DirectRegistrationResult {
+  success: boolean;
+  registration_id?: string;
+  ticket_code?: string;
+  is_new_user?: boolean;
+  user_credentials?: {
+    email: string;
+    password: string;
+  };
+  error?: string;
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// ─── Auth State ─────────────────────────────────────────────────────────────
 
 export interface AuthState {
   user: User | null;

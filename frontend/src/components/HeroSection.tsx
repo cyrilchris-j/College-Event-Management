@@ -115,7 +115,7 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
                     className="w-full justify-center text-sm py-3 font-semibold shadow-md"
                     onClick={e => {
                       e.stopPropagation();
-                      navigate(`/events/${activeEvent.id}`);
+                      navigate(`/events/${activeEvent.id}/register`);
                     }}
                   >
                     Register Now

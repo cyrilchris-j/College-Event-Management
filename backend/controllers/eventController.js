@@ -12,7 +12,8 @@ export async function getEvents(req, res) {
       .select(`
         id, organizer_id, organizer_club, title, short_description, description,
         category, event_start, event_end, venue, capacity, banner_url,
-        registration_deadline, status, created_at, updated_at,
+        registration_deadline, status, entry_fee, is_paid, gpay_number, gpay_upi_id,
+        created_at, updated_at,
         registrations (count)
       `)
       .eq('status', 'published');
@@ -88,7 +89,8 @@ export async function getEventById(req, res) {
       .select(`
         id, organizer_id, organizer_club, title, short_description, description,
         category, event_start, event_end, venue, capacity, banner_url,
-        registration_deadline, status, created_at, updated_at,
+        registration_deadline, status, entry_fee, is_paid, gpay_number, gpay_upi_id,
+        created_at, updated_at,
         registrations (count)
       `)
       .eq('id', id)
@@ -150,6 +152,10 @@ export async function createEvent(req, res) {
       banner_url,
       registration_deadline,
       organizer_club,
+      entry_fee = 0,
+      is_paid = false,
+      gpay_number = '9876543210',
+      gpay_upi_id = 'campusconnect@upi',
     } = req.body;
 
     const { data: newEvent, error } = await supabaseAdmin
@@ -167,6 +173,10 @@ export async function createEvent(req, res) {
         capacity: parseInt(capacity, 10),
         banner_url: banner_url || null,
         registration_deadline,
+        entry_fee: parseFloat(entry_fee) || 0,
+        is_paid: Boolean(is_paid || (parseFloat(entry_fee) > 0)),
+        gpay_number: gpay_number || '9876543210',
+        gpay_upi_id: gpay_upi_id || 'campusconnect@upi',
         status: 'published',
       })
       .select()
