@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Search,
   LogIn,
   Menu,
   X,
@@ -21,22 +20,15 @@ interface HeaderProps {
 }
 
 export function Header({
-  onSearchChange,
+  onSearchChange: _onSearchChange,
   onFilterClick: _onFilterClick,
-  searchValue = '',
+  searchValue: _searchValue = '',
 }: HeaderProps) {
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handler, { passive: true });
-    return () => window.removeEventListener('scroll', handler);
-  }, []);
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -51,155 +43,126 @@ export function Header({
 
   return (
     <header
-      className={[
-        'sticky top-0 z-40 w-full bg-white border-b border-border',
-        'transition-shadow duration-200',
-        scrolled ? 'shadow-sm' : '',
-      ].join(' ')}
+      className="sticky top-4 z-50 w-[95%] max-w-[1280px] mx-auto transition-all duration-300"
     >
-      <div className="container-main">
-        <div className="flex items-center gap-3 h-16">
+      <div className="bg-[#111C3A]/90 backdrop-blur-md rounded-full border border-[#1E2D52] shadow-xl px-5 md:px-8 flex items-center justify-between h-14 w-full">
 
-          {/* ── LEFT: College branding ──────────────────────────────────── */}
-          <Link
-            to="/"
-            className="flex items-center gap-3 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-blue-500 rounded-lg"
-            aria-label="KSR College of Engineering — Home"
+        {/* ── LEFT: College branding ──────────────────────────────────── */}
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-blue-500 rounded-lg"
+          aria-label="KSR College of Engineering — Home"
+        >
+          <div
+            className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0"
+            aria-hidden="true"
           >
-            {/* Logo/crest placeholder */}
-            <div
-              className="w-10 h-10 rounded-xl bg-navy flex items-center justify-center flex-shrink-0"
-              aria-hidden="true"
-            >
-              <GraduationCap size={20} className="text-white" />
-            </div>
-            <div className="hidden sm:block leading-tight">
-              <p className="text-sm font-semibold font-poppins text-navy leading-tight">
-                KSR College of Engineering
-              </p>
-              <p className="text-xs text-slate-500 leading-tight">
-                Tiruchengode, Tamil Nadu
-              </p>
-            </div>
-          </Link>
-
-          {/* ── CENTER: Search bar ──────────────────────────────────────── */}
-          <div className="flex-1 mx-4 hidden md:block">
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                role="searchbox"
-                aria-label="Search events"
-                value={searchValue}
-                onChange={e => onSearchChange?.(e.target.value)}
-                placeholder="Search events, workshops, hackathons..."
-                className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-border
-                           rounded-lg text-navy placeholder-slate-400
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                           focus:bg-white transition-all duration-200"
-              />
-            </div>
+            <GraduationCap size={16} className="text-white" />
           </div>
+          <div className="hidden sm:block leading-none">
+            <p className="text-xs font-bold font-poppins text-white leading-none">
+              KSR College of Engineering
+            </p>
+            <p className="text-[10px] text-slate-400 leading-none mt-0.5">
+              Tiruchengode
+            </p>
+          </div>
+        </Link>
 
-          {/* ── RIGHT: Actions ──────────────────────────────────────────── */}
-          <div className="flex items-center gap-2 ml-auto">
+        {/* ── CENTER: Navigation Links ─────────────────────────────────── */}
+        <nav className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-300">
+          <Link to="/" className="hover:text-blue-400 transition-colors">
+            Events
+          </Link>
+          {user && (
+            <Link to="/my-registrations" className="hover:text-blue-400 transition-colors">
+              My Tickets
+            </Link>
+          )}
+          <a href="#contact" className="hover:text-blue-400 transition-colors">
+            Contact
+          </a>
+        </nav>
 
+        {/* ── RIGHT: Actions ──────────────────────────────────────────── */}
+        <div className="flex items-center gap-2">
+          {/* User menu or Auth buttons */}
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(prev => !prev)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0B1329] border border-[#1E2D52] hover:border-blue-500 transition-all duration-150"
+                aria-expanded={userMenuOpen}
+                aria-haspopup="menu"
+                aria-label="User menu"
+              >
+                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                  <User size={12} className="text-white" />
+                </div>
+                <span className="hidden sm:block text-xs font-semibold text-white max-w-[80px] truncate">
+                  {profile?.full_name?.split(' ')[0] ?? user.email.split('@')[0]}
+                </span>
+                <ChevronDown size={12} className="text-slate-400" />
+              </button>
 
-            {/* Login / User menu */}
-            {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setUserMenuOpen(prev => !prev)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
-                  aria-expanded={userMenuOpen}
-                  aria-haspopup="menu"
-                  aria-label="User menu"
+              {userMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 mt-2 w-48 bg-[#111C3A] rounded-xl border border-[#1E2D52] shadow-xl py-1 text-white z-50"
                 >
-                  <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center">
-                    <User size={14} className="text-blue-600" />
-                  </div>
-                  <span className="hidden sm:block text-sm font-medium text-navy max-w-[80px] truncate">
-                    {profile?.full_name?.split(' ')[0] ?? user.email.split('@')[0]}
-                  </span>
-                  <ChevronDown size={14} className="text-slate-400" />
-                </button>
-
-                {userMenuOpen && (
-                  <div
-                    role="menu"
-                    className="absolute right-0 mt-1 w-48 bg-white rounded-xl border border-border shadow-card-hover py-1"
+                  <Link
+                    to="/my-registrations"
+                    role="menuitem"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-200 hover:bg-[#1E2D52] transition-colors"
+                    onClick={() => setUserMenuOpen(false)}
                   >
-                    <Link
-                      to="/my-registrations"
-                      role="menuitem"
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-navy hover:bg-blue-50 transition-colors"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      <Ticket size={15} className="text-blue-600" />
-                      My Tickets
-                    </Link>
-                    <button
-                      role="menuitem"
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <LogOut size={15} />
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
+                    <Ticket size={15} className="text-blue-400" />
+                    My Tickets
+                  </Link>
+                  <button
+                    role="menuitem"
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-400 hover:bg-red-950/20 transition-colors text-left"
+                  >
+                    <LogOut size={15} />
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
               <Button
                 variant="secondary"
                 size="sm"
-                leftIcon={<LogIn size={14} />}
+                className="rounded-full text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 border border-[#1E2D52] bg-[#0b1329] hover:bg-[#1E2D52] text-white"
                 onClick={() => navigate('/login')}
                 aria-label="Log in to your account"
               >
-                Log In
+                Sign In
               </Button>
-            )}
+              <Button
+                variant="primary"
+                size="sm"
+                className="rounded-full text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white"
+                onClick={() => navigate('/signup')}
+                aria-label="Register an account"
+              >
+                Register
+              </Button>
+            </div>
+          )}
 
-
-
-            {/* Hamburger (mobile) */}
-            <button
-              className="md:hidden p-2 rounded-lg text-slate-500 hover:text-navy hover:bg-slate-100 transition-colors"
-              onClick={() => setMobileOpen(prev => !prev)}
-              aria-expanded={mobileOpen}
-              aria-controls="mobile-nav"
-              aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-        </div>
-
-        {/* ── Mobile: Search row ────────────────────────────────────────── */}
-        <div className="md:hidden pb-3">
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              aria-label="Search events"
-              value={searchValue}
-              onChange={e => onSearchChange?.(e.target.value)}
-              placeholder="Search events, workshops..."
-              className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-border
-                         rounded-lg text-navy placeholder-slate-400
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
-            />
-          </div>
+          {/* Hamburger (mobile) */}
+          <button
+            className="md:hidden p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-[#1E2D52] transition-colors"
+            onClick={() => setMobileOpen(prev => !prev)}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          >
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
       </div>
 
@@ -207,14 +170,20 @@ export function Header({
       {mobileOpen && (
         <nav
           id="mobile-nav"
-          className="md:hidden bg-white border-t border-border py-3 px-4 space-y-1"
+          className="md:hidden bg-[#111C3A]/95 backdrop-blur-md border border-[#1E2D52] rounded-2xl py-3 px-4 mt-2 space-y-1 shadow-xl text-white"
           aria-label="Mobile navigation"
         >
-
+          <Link
+            to="/"
+            className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-200 rounded-lg hover:bg-[#1E2D52] transition-colors"
+            onClick={() => setMobileOpen(false)}
+          >
+            Events
+          </Link>
           {!user && (
             <button
               onClick={() => { navigate('/login'); setMobileOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-400 rounded-lg hover:bg-[#1E2D52] transition-colors text-left"
             >
               <LogIn size={16} />
               Log In
@@ -224,7 +193,7 @@ export function Header({
             <>
               <Link
                 to="/my-registrations"
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-navy rounded-lg hover:bg-blue-50 transition-colors"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-200 rounded-lg hover:bg-[#1E2D52] transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
                 <Ticket size={16} />
@@ -232,7 +201,7 @@ export function Header({
               </Link>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-400 rounded-lg hover:bg-red-950/20 transition-colors text-left"
               >
                 <LogOut size={16} />
                 Sign Out
