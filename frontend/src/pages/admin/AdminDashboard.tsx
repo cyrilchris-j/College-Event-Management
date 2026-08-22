@@ -12,7 +12,6 @@ import { AnimatedCounter } from '@/components/reactbits/AnimatedCounter';
 import { SpotlightCard } from '@/components/reactbits/SpotlightCard';
 import { MagnetButton } from '@/components/reactbits/MagnetButton';
 import {
-  ADMIN_EVENTS, ADMIN_ORGANIZERS, ADMIN_REGISTRATIONS,
   EVENT_STATUS_CONFIG, CATEGORY_COLORS,
   type AdminEvent
 } from './adminData';
@@ -20,7 +19,11 @@ import { fetchAdminDashboardData, type AdminDashboardTelemetry } from '@/service
 
 // ─── Utility ───────────────────────────────────────────────────────────────────
 
-function pct(r: number, c: number) { return Math.round((r / c) * 100); }
+function pct(r?: number, c?: number) {
+  const valR = typeof r === 'number' && !isNaN(r) ? r : 0;
+  const valC = typeof c === 'number' && !isNaN(c) && c > 0 ? c : 1;
+  return Math.round((valR / valC) * 100);
+}
 
 function StatusBadge({ status }: { status: string }) {
   const cfg = EVENT_STATUS_CONFIG[status as keyof typeof EVENT_STATUS_CONFIG] ?? EVENT_STATUS_CONFIG.Open;
@@ -296,18 +299,22 @@ export default function AdminDashboard() {
     loadData();
   }, []);
 
-  const currentEvents = telemetry?.events && telemetry.events.length > 0 ? telemetry.events : ADMIN_EVENTS;
+  const currentEvents = telemetry?.events || [];
+  const currentStudents = telemetry?.students || [];
+  const currentOrganizers = telemetry?.organizers || [];
+  const currentRegistrations = telemetry?.registrations || [];
+
   const currentMetrics = telemetry?.metrics || {
-    totalEvents: 120,
-    activeEvents: 18,
-    totalStudents: 4820,
-    totalOrganizers: 35,
-    totalRegistrations: 4812,
-    attendanceRate: 95,
+    totalEvents: 0,
+    activeEvents: 0,
+    totalStudents: 0,
+    totalOrganizers: 0,
+    totalRegistrations: 0,
+    attendanceRate: 0,
   };
 
-  const filteredEvents = currentEvents.filter(ev => {
-    const matchSearch = ev.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredEvents = currentEvents.filter((ev: any) => {
+    const matchSearch = (ev.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (ev.organizer || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchCat = filterCategory === 'All' || ev.category === filterCategory;
     const matchStatus = filterStatus === 'All' || ev.status === filterStatus;
@@ -608,51 +615,65 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredEvents.map(event => {
-                      const regPct = pct(event.registered, event.capacity);
-                      const attPct = pct(event.attended, event.registered);
-                      return (
-                        <tr
-                          key={event.id}
-                          className="cursor-pointer"
-                          style={{ transition: 'background 0.15s' }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(59,130,246,0.06)'; }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
-                          onClick={() => setSelectedEvent(event)}
-                        >
-                          <td>
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-8 rounded overflow-hidden flex-shrink-0">
-                                <img src={event.thumbnail} alt={event.title} className="w-full h-full object-cover" />
+                    {filteredEvents.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-10 text-slate-400">
+                          No live events found in Supabase database yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEvents.map(event => {
+                        const regVal = event.registered ?? event.registered_count ?? 0;
+                        const capVal = event.capacity ?? 100;
+                        const attVal = event.attended ?? 0;
+                        const regPct = pct(regVal, capVal);
+                        const attPct = pct(attVal, regVal > 0 ? regVal : capVal);
+                        const orgName = event.organizer || event.organizer_club || 'Campus Organization';
+                        const thumb = event.thumbnail || event.banner_url || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=300&h=200&fit=crop';
+                        const eventDate = event.date || (event.event_start ? new Date(event.event_start).toLocaleDateString() : 'Upcoming');
+                        return (
+                          <tr
+                            key={event.id}
+                            className="cursor-pointer"
+                            style={{ transition: 'background 0.15s' }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(59,130,246,0.06)'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
+                            onClick={() => setSelectedEvent(event)}
+                          >
+                            <td>
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-8 rounded overflow-hidden flex-shrink-0">
+                                  <img src={thumb} alt={event.title} className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium" style={{ color: '#F7F8FA' }}>{event.title}</p>
+                                  <CategoryPill category={event.category} />
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm font-medium" style={{ color: '#F7F8FA' }}>{event.title}</p>
-                                <CategoryPill category={event.category} />
+                            </td>
+                            <td><p className="text-[13px]" style={{ color: '#AAB6C7' }}>{orgName}</p></td>
+                            <td><p className="text-[13px]" style={{ color: '#AAB6C7' }}>{eventDate}</p></td>
+                            <td><p className="text-[13px]" style={{ color: '#AAB6C7' }}>{event.venue}</p></td>
+                            <td>
+                              <div className="w-24">
+                                <MiniProgress value={regPct} />
                               </div>
-                            </div>
-                          </td>
-                          <td><p className="text-[13px]" style={{ color: '#AAB6C7' }}>{event.organizer}</p></td>
-                          <td><p className="text-[13px]" style={{ color: '#AAB6C7' }}>{event.date}</p></td>
-                          <td><p className="text-[13px]" style={{ color: '#AAB6C7' }}>{event.venue}</p></td>
-                          <td>
-                            <div className="w-24">
-                              <MiniProgress value={regPct} />
-                            </div>
-                          </td>
-                          <td><span className="text-sm font-bold" style={{ color: '#3CCB91' }}>{attPct}%</span></td>
-                          <td><StatusBadge status={event.status} /></td>
-                          <td>
-                            <button
-                              onClick={e => { e.stopPropagation(); setSelectedEvent(event); }}
-                              className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
-                              style={{ background: 'rgba(59,130,246,0.15)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)' }}
-                            >
-                              View
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            </td>
+                            <td><span className="text-sm font-bold" style={{ color: '#3CCB91' }}>{attPct}%</span></td>
+                            <td><StatusBadge status={event.status} /></td>
+                            <td>
+                              <button
+                                onClick={e => { e.stopPropagation(); setSelectedEvent(event); }}
+                                className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
+                                style={{ background: 'rgba(59,130,246,0.15)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)' }}
+                              >
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -664,8 +685,8 @@ export default function AdminDashboard() {
         {activeNav === 'Students' && (
           <section className="admin-container py-10">
             <div className="mb-6">
-              <h2 className="admin-heading text-2xl lg:text-3xl">Student Directory</h2>
-              <p className="text-xs text-slate-400 mt-1">Directory of registered students across all departments and events.</p>
+              <h2 className="admin-heading text-2xl lg:text-3xl">Registered Student Directory</h2>
+              <p className="text-xs text-slate-400 mt-1">Directory of students registered for events in the Supabase database.</p>
             </div>
 
             <div className="rounded-xl overflow-hidden bg-[#0D172A] border border-slate-800 shadow-xl">
@@ -683,27 +704,29 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-xs">
-                    {[
-                      { name: 'Sabari Christopher', roll: '73152413003', dept: 'CSE', year: 'III', email: 'sabari@ksrce.ac.in', events: 4, status: 'Active' },
-                      { name: 'Priya Suresh', roll: '73152413022', dept: 'ECE', year: 'III', email: 'priya@ksrce.ac.in', events: 3, status: 'Active' },
-                      { name: 'Abilash Kumar R', roll: '73152413008', dept: 'IT', year: 'II', email: 'abilash@ksrce.ac.in', events: 5, status: 'Active' },
-                      { name: 'Karthik Murugan', roll: '73152413029', dept: 'EEE', year: 'IV', email: 'karthik@ksrce.ac.in', events: 2, status: 'Active' },
-                      { name: 'Divya Bharathi', roll: '73152413014', dept: 'CSE', year: 'III', email: 'divya@ksrce.ac.in', events: 6, status: 'Active' },
-                    ].map(st => (
-                      <tr key={st.roll} className="hover:bg-blue-950/20">
-                        <td className="font-semibold text-white">{st.name}</td>
-                        <td className="font-mono text-slate-400">{st.roll}</td>
-                        <td className="text-slate-300">{st.dept}</td>
-                        <td className="text-slate-300">{st.year}</td>
-                        <td className="text-slate-400">{st.email}</td>
-                        <td className="font-bold text-blue-400">{st.events} Events</td>
-                        <td>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                            {st.status}
-                          </span>
+                    {currentStudents.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-10 text-slate-400">
+                          No registered student records found in Supabase database yet.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      currentStudents.map((st: any) => (
+                        <tr key={st.id || st.rollNumber} className="hover:bg-blue-950/20">
+                          <td className="font-semibold text-white">{st.name || st.full_name}</td>
+                          <td className="font-mono text-slate-400">{st.rollNumber || st.roll_number || 'N/A'}</td>
+                          <td className="text-slate-300">{st.department || 'N/A'}</td>
+                          <td className="text-slate-300">{st.year || 'N/A'}</td>
+                          <td className="text-slate-400">{st.email || 'N/A'}</td>
+                          <td className="font-bold text-blue-400">{st.eventsRegistered || 1} Events</td>
+                          <td>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                              {st.status || 'Active'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -716,33 +739,39 @@ export default function AdminDashboard() {
           <section className="admin-container py-10">
             <div className="mb-6">
               <h2 className="admin-heading text-2xl lg:text-3xl">Club & Event Organizers</h2>
-              <p className="text-xs text-slate-400 mt-1">Institutional club coordinators and faculty organizers.</p>
+              <p className="text-xs text-slate-400 mt-1">Institutional club coordinators and faculty organizers from Supabase database.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {ADMIN_ORGANIZERS.map(org => (
-                <SpotlightCard key={org.id} spotlightColor="rgba(59, 130, 246, 0.15)" className="bg-[#0D172A] border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-12 h-12 rounded-xl border font-bold flex items-center justify-center text-lg"
-                      style={{ color: org.color, borderColor: `${org.color}40`, background: `${org.color}15` }}
-                    >
-                      {org.initials}
+            {currentOrganizers.length === 0 ? (
+              <div className="text-center py-10 text-slate-400 bg-[#0D172A] border border-slate-800 rounded-xl">
+                No club organizers found in Supabase database yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentOrganizers.map((org: any) => (
+                  <SpotlightCard key={org.id || org.name} spotlightColor="rgba(59, 130, 246, 0.15)" className="bg-[#0D172A] border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-12 h-12 rounded-xl border font-bold flex items-center justify-center text-lg"
+                        style={{ color: org.color || '#3B82F6', borderColor: `${org.color || '#3B82F6'}40`, background: `${org.color || '#3B82F6'}15` }}
+                      >
+                        {org.initials || 'CC'}
+                      </div>
+                      <div>
+                        <h3 className="font-bold font-poppins text-white text-base leading-tight">{org.name || org.full_name}</h3>
+                        <p className="text-xs text-slate-400 mt-0.5">{org.type || org.department || 'Organizer'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold font-poppins text-white text-base leading-tight">{org.name}</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">{org.type}</p>
-                    </div>
-                  </div>
 
-                  <div className="space-y-2 text-xs text-slate-300 pt-2 border-t border-slate-800">
-                    <div className="flex justify-between"><span className="text-slate-400">Total Events:</span> <span className="font-bold text-blue-400">{org.events}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">Total Registrations:</span> <span className="font-bold text-white">{org.registrations}</span></div>
-                    <div className="flex justify-between"><span className="text-slate-400">Attendance Rate:</span> <span className="font-bold text-emerald-400">{org.attendanceRate}%</span></div>
-                  </div>
-                </SpotlightCard>
-              ))}
-            </div>
+                    <div className="space-y-2 text-xs text-slate-300 pt-2 border-t border-slate-800">
+                      <div className="flex justify-between"><span className="text-slate-400">Total Events:</span> <span className="font-bold text-blue-400">{org.events || 0}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Total Registrations:</span> <span className="font-bold text-white">{org.registrations || 0}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-400">Attendance Rate:</span> <span className="font-bold text-emerald-400">{org.attendanceRate || 100}%</span></div>
+                    </div>
+                  </SpotlightCard>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
@@ -750,8 +779,8 @@ export default function AdminDashboard() {
         {activeNav === 'Registrations' && (
           <section className="admin-container py-10">
             <div className="mb-6">
-              <h2 className="admin-heading text-2xl lg:text-3xl">All Registrations</h2>
-              <p className="text-xs text-slate-400 mt-1">Live campus registration activity across all events.</p>
+              <h2 className="admin-heading text-2xl lg:text-3xl">Live Registrations</h2>
+              <p className="text-xs text-slate-400 mt-1">Live campus registration activity from Supabase database.</p>
             </div>
 
             <div className="rounded-xl overflow-hidden bg-[#0D172A] border border-slate-800 shadow-xl">
@@ -769,21 +798,29 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-xs">
-                    {ADMIN_REGISTRATIONS.map(reg => (
-                      <tr key={reg.id} className="hover:bg-blue-950/20">
-                        <td className="font-semibold text-white">{reg.student}</td>
-                        <td className="font-mono text-slate-400">{reg.rollNumber}</td>
-                        <td className="text-slate-200">{reg.event}</td>
-                        <td className="text-slate-400">{reg.organizer}</td>
-                        <td className="font-mono font-bold text-blue-400">{reg.ticketCode}</td>
-                        <td className="text-slate-400">{reg.registeredOn}</td>
-                        <td>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${reg.attended ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
-                            {reg.attended ? 'Attended' : 'Not Attended'}
-                          </span>
+                    {currentRegistrations.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-10 text-slate-400">
+                          No live registrations found in Supabase database yet.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      currentRegistrations.map((reg: any) => (
+                        <tr key={reg.id} className="hover:bg-blue-950/20">
+                          <td className="font-semibold text-white">{reg.student}</td>
+                          <td className="font-mono text-slate-400">{reg.rollNumber}</td>
+                          <td className="text-slate-200">{reg.event}</td>
+                          <td className="text-slate-400">{reg.organizer}</td>
+                          <td className="font-mono font-bold text-blue-400">{reg.ticketCode}</td>
+                          <td className="text-slate-400">{reg.registeredOn}</td>
+                          <td>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${reg.attended ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                              {reg.attended ? 'Attended' : 'Not Attended'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
