@@ -1,25 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const defaultSupabaseUrl = 'https://tuczdhtpuannsqxcubtj.supabase.co';
+const defaultSupabaseAnonKey =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1Y3pkaHRwdWFubnNxeGN1YnRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczNzE1ODksImV4cCI6MjEwMjk0NzU4OX0.ueojbkQtbmRSx6cqT9bmgfpPUGC089CHSUi87erZ9-s';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    '[CampusConnect] Supabase env vars missing. ' +
-    'Copy .env.example to .env and fill in your credentials.'
-  );
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || defaultSupabaseUrl;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || defaultSupabaseAnonKey;
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key',
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  }
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
 
 export default supabase;
