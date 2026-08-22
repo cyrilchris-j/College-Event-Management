@@ -30,6 +30,18 @@ export function Header({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  const handleScrollTo = (id: string) => {
+    setMobileOpen(false);
+    if (window.location.pathname !== '/') {
+      navigate(`/#${id}`);
+      return;
+    }
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // Close mobile nav on route change
   useEffect(() => {
     setMobileOpen(false);
@@ -71,17 +83,29 @@ export function Header({
 
         {/* ── CENTER: Navigation Links ─────────────────────────────────── */}
         <nav className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-300">
-          <Link to="/" className="hover:text-blue-400 transition-colors">
-            Events
-          </Link>
+          <button
+            onClick={() => handleScrollTo('all-events-section')}
+            className="hover:text-blue-400 transition-colors uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer"
+          >
+            All Events
+          </button>
+          <button
+            onClick={() => handleScrollTo('upcoming-events-section')}
+            className="hover:text-blue-400 transition-colors uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer"
+          >
+            Upcoming Events
+          </button>
           {user && (
             <Link to="/my-registrations" className="hover:text-blue-400 transition-colors">
               My Tickets
             </Link>
           )}
-          <a href="#contact" className="hover:text-blue-400 transition-colors">
+          <button
+            onClick={() => handleScrollTo('contact')}
+            className="hover:text-blue-400 transition-colors uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer"
+          >
             Contact
-          </a>
+          </button>
         </nav>
 
         {/* ── RIGHT: Actions ──────────────────────────────────────────── */}
@@ -141,15 +165,6 @@ export function Header({
               >
                 Sign In
               </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                className="rounded-full text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white"
-                onClick={() => navigate('/signup')}
-                aria-label="Register an account"
-              >
-                Register
-              </Button>
             </div>
           )}
 
@@ -173,17 +188,22 @@ export function Header({
           className="md:hidden bg-[#111C3A]/95 backdrop-blur-md border border-[#1E2D52] rounded-2xl py-3 px-4 mt-2 space-y-1 shadow-xl text-white"
           aria-label="Mobile navigation"
         >
-          <Link
-            to="/"
-            className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-200 rounded-lg hover:bg-[#1E2D52] transition-colors"
-            onClick={() => setMobileOpen(false)}
+          <button
+            onClick={() => handleScrollTo('all-events-section')}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-200 rounded-lg hover:bg-[#1E2D52] transition-colors text-left bg-transparent border-none"
           >
-            Events
-          </Link>
+            All Events
+          </button>
+          <button
+            onClick={() => handleScrollTo('upcoming-events-section')}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-200 rounded-lg hover:bg-[#1E2D52] transition-colors text-left bg-transparent border-none"
+          >
+            Upcoming Events
+          </button>
           {!user && (
             <button
               onClick={() => { navigate('/login'); setMobileOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-400 rounded-lg hover:bg-[#1E2D52] transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-400 rounded-lg hover:bg-[#1E2D52] transition-colors text-left bg-transparent border-none"
             >
               <LogIn size={16} />
               Log In
@@ -201,7 +221,7 @@ export function Header({
               </Link>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-400 rounded-lg hover:bg-red-950/20 transition-colors text-left"
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-red-400 rounded-lg hover:bg-red-950/20 transition-colors text-left bg-transparent border-none"
               >
                 <LogOut size={16} />
                 Sign Out
