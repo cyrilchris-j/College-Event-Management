@@ -4,22 +4,22 @@
 
 /* ─── CSS Custom Properties ─────────────────────────────────────────── */
 :root {
-  --color-navy: #132B5C;
-  --color-blue: #2563EB;
-  --color-blue-light: #EAF2FF;
-  --color-purple: #8B5CF6;
-  --color-purple-light: #F1EDFF;
-  --color-green: #10B981;
-  --color-green-light: #EAFBF4;
-  --color-amber: #F59E0B;
-  --color-amber-light: #FFF7E6;
-  --color-red: #EF4444;
-  --color-red-light: #FEF2F2;
-  --color-background: #F8FAFC;
-  --color-card: #FFFFFF;
-  --color-border: #E2E8F0;
-  --color-text-primary: #132B5C;
-  --color-text-secondary: #64748B;
+  --color-navy: #FFFFFF;
+  --color-blue: #3B82F6;
+  --color-blue-light: rgba(59, 130, 246, 0.15);
+  --color-purple: #A78BFA;
+  --color-purple-light: rgba(139, 92, 246, 0.15);
+  --color-green: #34D399;
+  --color-green-light: rgba(16, 185, 129, 0.15);
+  --color-amber: #FBBF24;
+  --color-amber-light: rgba(245, 158, 11, 0.15);
+  --color-red: #F87171;
+  --color-red-light: rgba(239, 68, 68, 0.15);
+  --color-background: #0B1329;
+  --color-card: #111C3A;
+  --color-border: #1E2D52;
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #94A3B8;
 }
 
 /* ─── Base Resets ────────────────────────────────────────────────────── */
@@ -188,8 +188,87 @@ h1, h2, h3, h4, h5, h6 {
   animation: floatSlow 6s ease-in-out infinite;
 }
 
-/* ─── Dark mode (future) ─────────────────────────────────────────────── */
-.dark body {
-  background-color: #0F172A;
-  color: #E2E8F0;
+/* ─── Dark blue theme overrides ───────────────────────────────────────── */
+html,
+body,
+#root,
+.bg-background {
+  background-color: var(--color-background) !important;
+  color: var(--color-text-primary) !important;
+}
+
+header,
+footer,
+.bg-white,
+.card-base,
+article,
+aside,
+.bg-card,
+[role="row"],
+[role="menu"],
+[role="dialog"] {
+  background-color: var(--color-card) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.text-navy, h1, h2, h3, h4, h5, h6, .text-slate-900 {
+  color: #FFFFFF !important;
+}
+
+.text-slate-500, .text-slate-600, .text-slate-400 {
+  color: var(--color-text-secondary) !important;
+}
+
+input, select, textarea {
+  background-color: var(--color-background) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.btn-secondary {
+  background-color: #1B2A4E !important;
+  color: #FFFFFF !important;
+  border-color: #2B3E6C !important;
+}
+.btn-secondary:hover {
+  background-color: #243868 !important;
+  border-color: #3B82F6 !important;
+}
+
+.bg-slate-50, .bg-gray-50 {
+  background-color: var(--color-background) !important;
+}
+
+.bg-blue-50, .bg-blue-50\/40, .bg-blue-50\/30 {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+.border-border, .border-slate-100, .border-slate-200 {
+  border-color: var(--color-border) !important;
+}
+
+.hover\:bg-blue-50\/40:hover, .hover\:bg-blue-50\/30:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Ensure skeleton loaders match theme */
+.bg-slate-100 {
+  background-color: #1E2D52 !important;
+}
+.bg-slate-200 {
+  background-color: #2B3E6C !important;
+}
+
+/* Modal backgrounds */
+.bg-black\/50, .bg-black\/40 {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Form border highlights */
+.focus\:ring-blue-500:focus {
+  --tw-ring-color: #3B82F6 !important;
+}
+.focus\:border-blue-500:focus {
+  border-color: #3B82F6 !important;
 }
