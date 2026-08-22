@@ -236,7 +236,7 @@ function EventDrawer({
                 className="h-full rounded-full transition-all duration-700"
                 style={{
                   width: `${registrationPct}%`,
-                  background: registrationPct >= 90 ? '#E36D6D' : registrationPct >= 75 ? '#E6A84B' : '#3CCB91',
+                  background: registrationPct >= 90 ? '#E36D6D' : registrationPct >= 75 ? '#E6A84B' : '#3B82F6',
                 }}
               />
             </div>
@@ -245,7 +245,7 @@ function EventDrawer({
           <div className="flex items-center justify-between p-4 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div>
               <Eyebrow>Attendance</Eyebrow>
-              <p className="text-2xl font-bold mt-1" style={{ color: '#3CCB91' }}>
+              <p className="text-2xl font-bold mt-1" style={{ color: '#3B82F6' }}>
                 {pct(event.attended, event.registered)}%
               </p>
             </div>
