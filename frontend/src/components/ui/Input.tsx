@@ -61,7 +61,7 @@ export function Input({
         />
         {rightIcon && (
           <span
-            className="absolute right-3 text-slate-400 pointer-events-none"
+            className="absolute right-3 text-slate-400"
             aria-hidden="true"
           >
             {rightIcon}
