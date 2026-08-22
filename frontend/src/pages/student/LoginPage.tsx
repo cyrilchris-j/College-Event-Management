@@ -2,13 +2,15 @@ import { useCallback, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Lock, GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { getUserById } from '@/services/authService';
+import { supabase } from '@/services/supabase';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get('redirect') ?? '/';
+  const redirectTo = searchParams.get('redirect');
 
   const { login } = useAuth();
 
@@ -37,7 +39,18 @@ export function LoginPage() {
       if (loginError) {
         setError(loginError);
       } else {
-        navigate(redirectTo, { replace: true });
+        // Fetch current user role for smart redirection
+        const { data: sessionData } = await supabase.auth.getSession();
+        const userId = sessionData.session?.user.id;
+        const profile = userId ? await getUserById(userId) : null;
+
+        if (profile?.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else if (profile?.role === 'organizer') {
+          navigate('/organizer', { replace: true });
+        } else {
+          navigate(redirectTo || '/', { replace: true });
+        }
       }
     },
     [form, login, navigate, redirectTo]
@@ -103,55 +116,53 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(prev => !prev)}
+                    className="text-slate-400 hover:text-slate-600 transition-colors p-1"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="pointer-events-auto text-slate-400 hover:text-slate-600 p-0"
                   >
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 }
               />
 
-              {/* Error */}
+              {/* Error message */}
               {error && (
                 <div
                   role="alert"
-                  className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5"
+                  className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium"
                 >
-                  ⚠ {error}
+                  {error}
                 </div>
               )}
 
+              {/* Submit */}
               <Button
                 type="submit"
                 variant="primary"
                 size="lg"
                 loading={loading}
                 className="w-full justify-center mt-2"
+                id="login-submit-btn"
               >
-                Log In
+                Sign In
               </Button>
             </form>
 
-            <div className="text-center mt-6">
-              <p className="text-sm text-slate-500">
+            {/* Footer links */}
+            <div className="mt-6 pt-6 border-t border-border text-center space-y-2">
+              <p className="text-xs text-slate-500">
                 Don't have an account?{' '}
                 <Link
-                  to={`/signup?redirect=${encodeURIComponent(redirectTo)}`}
-                  className="text-blue-600 font-medium hover:text-blue-700 transition-colors
-                             focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
+                  to={`/signup${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`}
+                  className="font-semibold text-blue-600 hover:underline"
                 >
-                  Create Account
+                  Create one now
                 </Link>
+              </p>
+              <p className="text-xs text-slate-400">
+                Faculty / Organisers: Use your <code className="text-xs font-mono bg-slate-100 px-1 py-0.5 rounded">@ksrce.ac.in</code> email
               </p>
             </div>
           </div>
-
-          <p className="text-center text-xs text-slate-400 mt-4">
-            By logging in, you agree to our{' '}
-            <Link to="/terms" className="hover:text-blue-600">Terms of Service</Link>
-            {' '}and{' '}
-            <Link to="/privacy" className="hover:text-blue-600">Privacy Policy</Link>.
-          </p>
         </div>
       </div>
     </div>
