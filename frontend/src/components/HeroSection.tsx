@@ -1,232 +1,138 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Play, Calendar, QrCode, CheckCircle2 } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { SplitText } from '@/components/reactbits/SplitText';
-import { ShinyText } from '@/components/reactbits/ShinyText';
-import { MagnetButton } from '@/components/reactbits/MagnetButton';
-import { TiltedCard } from '@/components/reactbits/TiltedCard';
-import { SpotlightCard } from '@/components/reactbits/SpotlightCard';
+import type { Event } from '@/types';
+import { getEventThumbnail } from '@/utils/eventHelpers';
+import { formatEventDateRange } from '@/utils/dateFormatter';
+import { CategoryBadge } from '@/components/events/CategoryBadge';
+import { RegistrationProgress } from '@/components/events/RegistrationProgress';
+import { EventCountdown } from '@/components/events/EventCountdown';
 
 export function HeroSection() {
   const navigate = useNavigate();
 
   return (
     <section
-      className="w-full bg-gradient-to-br from-blue-50 via-white to-slate-50 border-b border-border overflow-hidden"
+      className="w-full bg-[#0B1329] border-b border-[#1E2D52]"
       aria-label="Welcome hero section"
     >
-      <div className="container-main py-12 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div className="w-full flex flex-col items-center justify-center p-0 m-0">
+        {/* Recent Events Slideshow (Full Screen / No Card container) */}
+        <div className="relative flex flex-col items-center justify-center w-full min-h-[460px] mx-auto p-0 m-0">
+          {/* Decorative background circles */}
+          <div
+            className="absolute w-96 h-96 rounded-full bg-blue-900/10 top-1/2 left-1/2
+                       -translate-x-1/2 -translate-y-1/2"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute w-64 h-64 rounded-full bg-purple-950/15 -top-12 right-12"
+            aria-hidden="true"
+          />
 
-          {/* ── LEFT: Text Content ──────────────────────────────────────── */}
-          <div className="flex flex-col gap-6">
-            {/* Animated Shiny Badge */}
-            <div>
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-navy text-white text-sm font-semibold border border-blue-200 shadow-sm">
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" aria-hidden="true" />
-                <ShinyText text="Discover. Register. Participate." speed={3} />
-              </span>
-            </div>
-
-            {/* Heading with React Bits SplitText */}
-            <div>
-              <h1 className="font-poppins font-bold leading-[1.1] text-[30px] sm:text-[36px] lg:text-[48px] xl:text-[52px]">
-                <SplitText
-                  text="Discover. Learn. Grow."
-                  className="text-navy block"
-                  delay={0.1}
-                />
-                <span className="text-blue-600 block mt-1">
-                  <SplitText text="Your Campus, Your Journey." delay={0.4} />
-                </span>
-              </h1>
-            </div>
-
-            {/* Description */}
-            <p className="text-[15px] text-slate-600 leading-relaxed max-w-md">
-              Find exciting events, build skills, and connect with a community
-              that inspires you. All campus events — in one place.
-            </p>
-
-            {/* CTA Buttons with MagnetButton */}
-            <div className="flex flex-wrap gap-4 items-center">
-              <MagnetButton magnetStrength={0.2}>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  rightIcon={<ArrowRight size={18} />}
-                  onClick={() => {
-                    document.getElementById('events-section')?.scrollIntoView({ behavior: 'smooth' });
+          {activeEvent ? (
+            <div
+              key={activeEvent.id}
+              className="w-full flex flex-col md:flex-row gap-0 items-center justify-between
+                         animate-slide-in cursor-pointer p-0 m-0"
+              onClick={() => navigate(`/events/${activeEvent.id}`)}
+            >
+              {/* Left: Large Event Banner Image */}
+              <div className="relative w-full md:w-1/2 h-[300px] md:h-[480px] rounded-none overflow-hidden bg-slate-800 shadow-xl flex-shrink-0">
+                <img
+                  src={thumbnail}
+                  alt={`${activeEvent.title} banner`}
+                  className="w-full h-full object-cover"
+                  onError={e => {
+                    (e.target as HTMLImageElement).src =
+                      'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1000&h=600&fit=crop';
                   }}
-                  aria-label="Explore all events"
-                  className="shadow-lg shadow-blue-500/20"
-                >
-                  Explore Events
-                </Button>
-              </MagnetButton>
+                />
+                <div className="absolute top-4 right-4 z-20">
+                  <CategoryBadge category={activeEvent.category} />
+                </div>
+              </div>
 
-              <MagnetButton magnetStrength={0.2}>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  leftIcon={
-                    <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
-                      <Play size={9} className="text-white ml-0.5" aria-hidden="true" />
+              {/* Right: Event Details directly on the page background */}
+              <div className="flex-1 flex flex-col justify-between py-8 px-6 md:px-12 text-white w-full md:w-1/2 h-full">
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-xs uppercase font-bold tracking-wider text-blue-400">
+                      Recent Event
                     </span>
-                  }
-                  onClick={() => navigate('/login')}
-                  aria-label="Learn how CampusConnect works"
-                >
-                  How It Works
-                </Button>
-              </MagnetButton>
-            </div>
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-white mt-1.5 leading-tight tracking-tight">
+                      {activeEvent.title}
+                    </h1>
+                    <p className="text-sm md:text-base text-slate-350 mt-3 line-clamp-3 leading-relaxed">
+                      {activeEvent.short_description ?? activeEvent.description}
+                    </p>
+                  </div>
 
-            {/* Trust indicators */}
-            <div className="flex items-center gap-4 flex-wrap pt-2">
-              {[
-                { text: 'Free Registration', color: 'text-green-600' },
-                { text: 'Instant Digital Ticket', color: 'text-blue-600' },
-                { text: 'QR Verified Entry', color: 'text-purple-600' },
-              ].map(item => (
-                <span
-                  key={item.text}
-                  className={`flex items-center gap-1.5 text-xs font-medium ${item.color}`}
-                >
-                  <CheckCircle2 size={13} />
-                  {item.text}
-                </span>
+                  {/* Countdown display */}
+                  <EventCountdown eventStart={activeEvent.event_start} />
+
+                  {/* Date & Location */}
+                  <div className="flex flex-col gap-3 border-t border-[#1E2D52] pt-5">
+                    <div className="flex items-center gap-3 text-sm text-slate-300">
+                      <Calendar size={16} className="text-blue-400" />
+                      <span className="font-semibold">{dateLabel}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-slate-300">
+                      <MapPin size={16} className="text-blue-400" />
+                      <span className="font-semibold truncate">{activeEvent.venue}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5 border-t border-[#1E2D52] pt-5 mt-5">
+                  {/* Registration Progress */}
+                  <RegistrationProgress event={activeEvent} showCount />
+
+                  {/* Button */}
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full justify-center text-sm py-3 font-semibold shadow-md"
+                    onClick={e => {
+                      e.stopPropagation();
+                      navigate(`/events/${activeEvent.id}`);
+                    }}
+                  >
+                    Register Now
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Fallback Placeholder */
+            <div className="w-full max-w-[500px] border border-[#1E2D52] rounded-2xl p-8 text-center flex flex-col gap-4 items-center z-10 text-white">
+              <div className="w-14 h-14 rounded-full bg-blue-900/20 flex items-center justify-center text-blue-400">
+                <Calendar size={26} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">No Events Uploaded</h3>
+                <p className="text-sm text-slate-400 mt-2 max-w-[280px] mx-auto leading-relaxed">
+                  Events uploaded by the admin or organizers will show up here automatically.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Slide indicators */}
+          {displayEvents.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
+              {displayEvents.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    currentIndex === idx ? 'bg-blue-500 w-4' : 'bg-slate-600 hover:bg-slate-500'
+                  }`}
+                  aria-label={`Go to event slide ${idx + 1}`}
+                />
               ))}
             </div>
-          </div>
-
-          {/* ── RIGHT: Visual Cards with 3D Tilt & Spotlight ────────── */}
-          <div className="relative flex items-center justify-center h-[400px] lg:h-[420px]">
-            {/* Decorative background circles */}
-            <div
-              className="absolute w-72 h-72 rounded-full bg-blue-100/60 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse"
-              aria-hidden="true"
-            />
-            <div
-              className="absolute w-48 h-48 rounded-full bg-purple-100/40 top-6 right-6"
-              aria-hidden="true"
-            />
-
-            {/* ── Calendar Card (center-left) ─────────────────────────── */}
-            <TiltedCard maxTilt={8} className="absolute left-0 top-8 z-10">
-              <SpotlightCard
-                className="w-48 bg-white rounded-2xl border border-border shadow-card-hover p-4"
-                spotlightColor="rgba(37, 99, 235, 0.12)"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-navy">May 2024</span>
-                  <Calendar size={14} className="text-blue-600" />
-                </div>
-                <div className="grid grid-cols-7 gap-0.5 text-center">
-                  {['M','T','W','T','F','S','S'].map((d, i) => (
-                    <span key={i} className="text-[9px] font-semibold text-slate-400">{d}</span>
-                  ))}
-                  {[...Array(5)].map((_, i) => (
-                    <span key={`pad-${i}`} className="text-[10px] text-transparent">0</span>
-                  ))}
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
-                    <button
-                      key={d}
-                      className={[
-                        'text-[10px] w-5 h-5 rounded flex items-center justify-center mx-auto',
-                        d === 25
-                          ? 'bg-blue-600 text-white font-bold'
-                          : d === 28 || d === 30
-                          ? 'bg-blue-100 text-blue-700 font-semibold'
-                          : 'text-slate-600 hover:bg-slate-100',
-                      ].join(' ')}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </SpotlightCard>
-            </TiltedCard>
-
-            {/* ── Event Info Card (center) ────────────────────────────── */}
-            <TiltedCard maxTilt={10} className="absolute top-16 right-4 lg:right-0 z-20">
-              <SpotlightCard
-                className="w-52 bg-white rounded-2xl border border-border shadow-card-hover p-4"
-                spotlightColor="rgba(59, 130, 246, 0.15)"
-              >
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center mb-3 shadow-md">
-                  <Calendar size={16} className="text-white" />
-                </div>
-                <h3 className="text-sm font-bold text-navy">AI Workshop</h3>
-                <p className="text-xs text-slate-500 mt-0.5">May 25, 2024</p>
-                <p className="text-xs text-slate-500">Speaker: Dr. Sarah Johnson</p>
-                <div className="mt-3 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-green-500 w-[62%] rounded-full animate-pulse" />
-                  </div>
-                  <span className="text-xs font-semibold text-green-600">62%</span>
-                </div>
-                <button
-                  className="mt-3 w-full py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                >
-                  Register Now
-                </button>
-              </SpotlightCard>
-            </TiltedCard>
-
-            {/* ── Registered Card (bottom-left) ──────────────────────── */}
-            <TiltedCard maxTilt={8} className="absolute bottom-8 left-6 z-10">
-              <SpotlightCard className="w-44 bg-white rounded-xl border border-border shadow-card p-3">
-                <p className="text-xs font-semibold text-navy">Hackathon 2024</p>
-                <p className="text-xs text-slate-500 mt-0.5">May 20, 2024</p>
-                <div className="flex items-center gap-1.5 mt-2">
-                  <div className="flex -space-x-1.5">
-                    {['#2563EB','#8B5CF6','#10B981'].map((c, i) => (
-                      <div
-                        key={i}
-                        className="w-5 h-5 rounded-full border-2 border-white"
-                        style={{ backgroundColor: c }}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[10px] font-semibold text-slate-600">150+ Registered</span>
-                </div>
-              </SpotlightCard>
-            </TiltedCard>
-
-            {/* ── Digital Pass / QR Card (bottom-right) ──────────────── */}
-            <TiltedCard maxTilt={12} className="absolute bottom-4 right-2 lg:right-0 z-20">
-              <SpotlightCard
-                className="w-44 bg-navy rounded-xl shadow-xl p-3"
-                spotlightColor="rgba(200, 169, 107, 0.25)"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-white">Your Event Pass</span>
-                  <QrCode size={14} className="text-blue-300" />
-                </div>
-                <div className="w-20 h-20 mx-auto bg-white rounded-lg p-1.5 shadow-inner">
-                  <div className="w-full h-full grid grid-cols-5 gap-0.5">
-                    {Array.from({ length: 25 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="rounded-[1px]"
-                        style={{
-                          backgroundColor:
-                            [0,1,5,6,10,15,20,21,24,3,13,18,8,23].includes(i)
-                              ? '#132B5C'
-                              : 'transparent',
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <p className="text-center text-[9px] text-blue-200 mt-2 font-mono">
-                  Scan to Verify
-                </p>
-              </SpotlightCard>
-            </TiltedCard>
-          </div>
-
+          )}
         </div>
       </div>
     </section>
