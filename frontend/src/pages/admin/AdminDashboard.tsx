@@ -16,6 +16,7 @@ import {
   EVENT_STATUS_CONFIG, CATEGORY_COLORS,
   type AdminEvent
 } from './adminData';
+import { fetchAdminDashboardData, type AdminDashboardTelemetry } from '@/services/adminService';
 
 // ─── Utility ───────────────────────────────────────────────────────────────────
 
@@ -274,6 +275,8 @@ function EventDrawer({
 
 // ─── Main Admin Dashboard ─────────────────────────────────────────────────────
 export default function AdminDashboard() {
+  const [telemetry, setTelemetry] = useState<AdminDashboardTelemetry | null>(null);
+
   const [activeNav, setActiveNav] = useState('Overview');
   const [selectedEvent, setSelectedEvent] = useState<AdminEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -281,9 +284,31 @@ export default function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  const filteredEvents = ADMIN_EVENTS.filter(ev => {
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const data = await fetchAdminDashboardData();
+        setTelemetry(data);
+      } catch (e) {
+        console.error('Failed to load admin telemetry:', e);
+      }
+    }
+    loadData();
+  }, []);
+
+  const currentEvents = telemetry?.events && telemetry.events.length > 0 ? telemetry.events : ADMIN_EVENTS;
+  const currentMetrics = telemetry?.metrics || {
+    totalEvents: 120,
+    activeEvents: 18,
+    totalStudents: 4820,
+    totalOrganizers: 35,
+    totalRegistrations: 4812,
+    attendanceRate: 95,
+  };
+
+  const filteredEvents = currentEvents.filter(ev => {
     const matchSearch = ev.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ev.organizer.toLowerCase().includes(searchQuery.toLowerCase());
+      (ev.organizer || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchCat = filterCategory === 'All' || ev.category === filterCategory;
     const matchStatus = filterStatus === 'All' || ev.status === filterStatus;
     return matchSearch && matchCat && matchStatus;
@@ -501,12 +526,12 @@ export default function AdminDashboard() {
               <div className="admin-container">
                 <div className="grid grid-cols-2 md:grid-cols-6 divide-x" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                   {[
-                    { icon: <CalendarDays size={14} />, value: '120', label: 'Total Events', trend: '+12.4% this month', trendUp: true, delay: 0 },
-                    { icon: <Zap size={14} />, value: '18', label: 'Active', trend: '3 Live now', trendUp: true, delay: 80 },
-                    { icon: <Users size={14} />, value: '4,820', label: 'Students', trend: '+320 this sem', trendUp: true, delay: 160 },
-                    { icon: <Building2 size={14} />, value: '35', label: 'Organizers', trend: '+2 new', trendUp: true, delay: 240 },
-                    { icon: <Ticket size={14} />, value: '4,812', label: 'Registrations', trend: '+18.7% this month', trendUp: true, delay: 320 },
-                    { icon: <ShieldCheck size={14} />, value: '95%', label: 'Attendance', trend: '+3.2% vs last sem', trendUp: true, delay: 400 },
+                    { icon: <CalendarDays size={14} />, value: `${currentMetrics.totalEvents}`, label: 'Total Events', trend: '+12.4% this month', trendUp: true, delay: 0 },
+                    { icon: <Zap size={14} />, value: `${currentMetrics.activeEvents}`, label: 'Active', trend: '3 Live now', trendUp: true, delay: 80 },
+                    { icon: <Users size={14} />, value: `${currentMetrics.totalStudents.toLocaleString()}`, label: 'Students', trend: '+320 this sem', trendUp: true, delay: 160 },
+                    { icon: <Building2 size={14} />, value: `${currentMetrics.totalOrganizers}`, label: 'Organizers', trend: '+2 new', trendUp: true, delay: 240 },
+                    { icon: <Ticket size={14} />, value: `${currentMetrics.totalRegistrations.toLocaleString()}`, label: 'Registrations', trend: '+18.7% this month', trendUp: true, delay: 320 },
+                    { icon: <ShieldCheck size={14} />, value: `${currentMetrics.attendanceRate}%`, label: 'Attendance', trend: '+3.2% vs last sem', trendUp: true, delay: 400 },
                   ].map(m => (
                     <div key={m.label} style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                       <MetricItem {...m} />
