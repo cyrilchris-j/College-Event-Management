@@ -12,7 +12,6 @@ import { ToastContainer } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/Button';
 import { CategoryBadge } from '@/components/events/CategoryBadge';
 import { RegistrationProgress } from '@/components/events/RegistrationProgress';
-import { Modal } from '@/components/ui/Modal';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { EventDetailSkeleton } from '@/components/ui/Skeleton';
@@ -24,14 +23,12 @@ export function EventDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toasts, addToast, removeToast } = useToast();
+  const { toasts, removeToast } = useToast();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [registering, setRegistering] = useState(false);
 
   // ── Load event ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -52,31 +49,13 @@ export function EventDetailsPage() {
     checkRegistrationStatus(id, user.id).then(setRegistration);
   }, [id, user]);
 
-  const handleRegisterClick = useCallback(async () => {
-    if (!user) {
-      setAuthModalOpen(true);
-      return;
-    }
+  const handleRegisterClick = useCallback(() => {
     if (registration) {
       navigate(`/ticket/${registration.id}`);
       return;
     }
-    setRegistering(true);
-    try {
-      // Dynamic import to avoid circular deps
-      const { registerForEvent } = await import('@/services/registrationService');
-      const { registration: reg, error } = await registerForEvent(id!, user.id);
-      if (error) {
-        addToast(error, 'error');
-      } else if (reg) {
-        setRegistration(reg);
-        addToast('Registration successful! 🎉', 'success');
-        setTimeout(() => navigate(`/ticket/${reg.id}`), 1500);
-      }
-    } finally {
-      setRegistering(false);
-    }
-  }, [user, registration, id, navigate, addToast]);
+    navigate(`/events/${id}/register`);
+  }, [registration, id, navigate]);
 
   if (loading) {
     return (
@@ -253,7 +232,6 @@ export function EventDetailsPage() {
                     size="md"
                     className="w-full justify-center"
                     disabled={!canRegister}
-                    loading={registering}
                     onClick={handleRegisterClick}
                     aria-label={
                       !canRegister
@@ -281,48 +259,6 @@ export function EventDetailsPage() {
       </main>
 
       <Footer />
-
-      {/* ── Auth Modal ────────────────────────────────────────────────── */}
-      <Modal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        title="Sign in to continue"
-        size="sm"
-      >
-        <div className="text-center space-y-4">
-          <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mx-auto">
-            <Ticket size={24} className="text-blue-600" />
-          </div>
-          <p className="text-sm text-slate-600">
-            Please log in to register for{' '}
-            <span className="font-semibold text-navy">{event.title}</span>.
-            <br />
-            You'll be redirected back here after signing in.
-          </p>
-          <div className="flex flex-col gap-2">
-            <Button
-              variant="primary"
-              className="w-full justify-center"
-              onClick={() => {
-                setAuthModalOpen(false);
-                navigate(`/login?redirect=/events/${id}`);
-              }}
-            >
-              Log In
-            </Button>
-            <Button
-              variant="secondary"
-              className="w-full justify-center"
-              onClick={() => {
-                setAuthModalOpen(false);
-                navigate(`/signup?redirect=/events/${id}`);
-              }}
-            >
-              Create Account
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>

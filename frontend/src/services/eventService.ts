@@ -23,7 +23,9 @@ export async function getPublishedEvents(params?: {
     .select(`
       id, title, description, short_description, category,
       event_start, event_end, venue, capacity,
-      banner_url, organizer_id, organizer_club, registration_deadline, status, created_at,
+      banner_url, organizer_id, organizer_club, registration_deadline,
+      entry_fee, is_paid, gpay_number, gpay_upi_id,
+      status, created_at,
       registrations (count)
     `)
     .eq('status', 'published');
@@ -81,6 +83,10 @@ export async function getPublishedEvents(params?: {
       organizer_id: e.organizer_id,
       organizer_name: e.organizer_club || 'Campus Organization',
       registration_deadline: e.registration_deadline,
+      entry_fee: Number(e.entry_fee) || 0,
+      is_paid: Boolean(e.is_paid || (Number(e.entry_fee) > 0)),
+      gpay_number: e.gpay_number || '9876543210',
+      gpay_upi_id: e.gpay_upi_id || 'campusconnect@upi',
       status: e.status,
       created_at: e.created_at,
       registration_status: registrationStatus,
@@ -88,7 +94,6 @@ export async function getPublishedEvents(params?: {
     };
   });
 
-  // Client sort for most_registered or most_available if requested
   if (params?.sort === 'most_registered') {
     formatted.sort((a, b) => b.registered_count - a.registered_count);
   } else if (params?.sort === 'most_available') {
@@ -110,7 +115,9 @@ export async function getEventById(id: string): Promise<Event | null> {
     .select(`
       id, title, description, short_description, category,
       event_start, event_end, venue, capacity,
-      banner_url, organizer_id, organizer_club, registration_deadline, status, created_at,
+      banner_url, organizer_id, organizer_club, registration_deadline,
+      entry_fee, is_paid, gpay_number, gpay_upi_id,
+      status, created_at,
       registrations (count)
     `)
     .eq('id', id)
@@ -150,6 +157,10 @@ export async function getEventById(id: string): Promise<Event | null> {
     organizer_id: data.organizer_id,
     organizer_name: data.organizer_club || 'Campus Organization',
     registration_deadline: data.registration_deadline,
+    entry_fee: Number(data.entry_fee) || 0,
+    is_paid: Boolean(data.is_paid || (Number(data.entry_fee) > 0)),
+    gpay_number: data.gpay_number || '9876543210',
+    gpay_upi_id: data.gpay_upi_id || 'campusconnect@upi',
     status: data.status,
     created_at: data.created_at,
     registration_status: registrationStatus,
@@ -177,7 +188,6 @@ export async function getEventRegistrationCount(eventId: string): Promise<number
 
 /**
  * Subscribe to real-time registration count changes for an event.
- * Returns unsubscribe function.
  */
 export function subscribeToEventRegistrations(
   eventId: string,

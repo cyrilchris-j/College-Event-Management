@@ -150,16 +150,17 @@ export function LoginPage() {
             {/* Footer links */}
             <div className="mt-6 pt-6 border-t border-border text-center space-y-2">
               <p className="text-xs text-slate-500">
-                Don't have an account?{' '}
+                New Student?{' '}
                 <Link
-                  to={`/signup${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`}
+                  to="/"
                   className="font-semibold text-blue-600 hover:underline"
                 >
-                  Create one now
-                </Link>
+                  Register for an event
+                </Link>{' '}
+                to get your credentials instantly!
               </p>
               <p className="text-xs text-slate-400">
-                Faculty / Organisers: Use your <code className="text-xs font-mono bg-slate-100 px-1 py-0.5 rounded">@ksrce.ac.in</code> email
+                Faculty / Organisers: Sign in with your <code className="text-xs font-mono bg-slate-100 px-1 py-0.5 rounded">@ksrce.ac.in</code> email
               </p>
             </div>
           </div>

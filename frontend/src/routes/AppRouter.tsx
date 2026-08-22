@@ -9,11 +9,13 @@ const HomePage = lazy(() =>
 const EventDetailsPage = lazy(() =>
   import('@/pages/public/EventDetailsPage').then(m => ({ default: m.EventDetailsPage }))
 );
+const EventRegistrationPage = lazy(() =>
+  import('@/pages/student/EventRegistrationPage').then(m => ({
+    default: m.EventRegistrationPage,
+  }))
+);
 const LoginPage = lazy(() =>
   import('@/pages/student/LoginPage').then(m => ({ default: m.LoginPage }))
-);
-const SignupPage = lazy(() =>
-  import('@/pages/student/SignupPage').then(m => ({ default: m.SignupPage }))
 );
 const MyRegistrationsPage = lazy(() =>
   import('@/pages/student/MyRegistrationsPage').then(m => ({
@@ -26,13 +28,36 @@ const TicketPage = lazy(() =>
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 
 // Organizer Portal Pages
-const OrganizerDashboard = lazy(() => import('@/pages/organizer/OrganizerDashboard').then(m => ({ default: m.OrganizerDashboard })));
-const CreateEventPage = lazy(() => import('@/pages/organizer/CreateEventPage').then(m => ({ default: m.CreateEventPage })));
-const ManageEventPage = lazy(() => import('@/pages/organizer/ManageEventPage').then(m => ({ default: m.ManageEventPage })));
-const OrganizerRegistrationsPage = lazy(() => import('@/pages/organizer/OrganizerRegistrationsPage').then(m => ({ default: m.OrganizerRegistrationsPage })));
-const OrganizerAttendancePage = lazy(() => import('@/pages/organizer/OrganizerAttendancePage').then(m => ({ default: m.OrganizerAttendancePage })));
-const OrganizerReportsPage = lazy(() => import('@/pages/organizer/OrganizerReportsPage').then(m => ({ default: m.OrganizerReportsPage })));
-
+const OrganizerDashboard = lazy(() =>
+  import('@/pages/organizer/OrganizerDashboard').then(m => ({
+    default: m.OrganizerDashboard,
+  }))
+);
+const CreateEventPage = lazy(() =>
+  import('@/pages/organizer/CreateEventPage').then(m => ({
+    default: m.CreateEventPage,
+  }))
+);
+const ManageEventPage = lazy(() =>
+  import('@/pages/organizer/ManageEventPage').then(m => ({
+    default: m.ManageEventPage,
+  }))
+);
+const OrganizerRegistrationsPage = lazy(() =>
+  import('@/pages/organizer/OrganizerRegistrationsPage').then(m => ({
+    default: m.OrganizerRegistrationsPage,
+  }))
+);
+const OrganizerAttendancePage = lazy(() =>
+  import('@/pages/organizer/OrganizerAttendancePage').then(m => ({
+    default: m.OrganizerAttendancePage,
+  }))
+);
+const OrganizerReportsPage = lazy(() =>
+  import('@/pages/organizer/OrganizerReportsPage').then(m => ({
+    default: m.OrganizerReportsPage,
+  }))
+);
 
 // ── Page-level loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -60,8 +85,10 @@ export function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/events" element={<HomePage />} />
           <Route path="/events/:id" element={<EventDetailsPage />} />
+          <Route path="/events/:id/register" element={<EventRegistrationPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+          {/* No standalone signup page - redirect to home */}
+          <Route path="/signup" element={<Navigate to="/" replace />} />
 
           {/* Protected student routes */}
           <Route
@@ -86,7 +113,6 @@ export function AppRouter() {
             path="/attendance/scan"
             element={
               <ProtectedRoute>
-                {/* Lazy placeholder — extend later */}
                 <Navigate to="/my-registrations" replace />
               </ProtectedRoute>
             }

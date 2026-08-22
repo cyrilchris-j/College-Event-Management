@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Ticket, CheckCircle2, AlertCircle } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { ArrowLeft, Calendar, MapPin, Ticket, CheckCircle2, AlertCircle, Copy, Check, ShieldCheck } from 'lucide-react';
 import { getRegistrationById } from '@/services/registrationService';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from '@/components/layout/Header';
@@ -19,6 +18,7 @@ export function TicketPage() {
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -30,6 +30,13 @@ export function TicketPage() {
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleCopyCode = () => {
+    if (!registration?.ticket_code) return;
+    navigator.clipboard.writeText(registration.ticket_code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   if (loading) {
     return (
@@ -63,12 +70,6 @@ export function TicketPage() {
   }
 
   const event = registration.event;
-  const qrPayload = JSON.stringify({
-    ticket_code: registration.ticket_code,
-    event_id: registration.event_id,
-    student_id: registration.student_id,
-    registered_at: registration.registered_at,
-  });
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -89,7 +90,7 @@ export function TicketPage() {
           {/* Digital Ticket Card */}
           <div
             className="bg-navy rounded-2xl overflow-hidden shadow-xl"
-            aria-label="Digital event ticket"
+            aria-label="Digital event ticket pass"
           >
             {/* Ticket header */}
             <div className="px-6 pt-6 pb-4">
@@ -97,7 +98,7 @@ export function TicketPage() {
                 <div className="flex items-center gap-2">
                   <Ticket size={18} className="text-blue-300" />
                   <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">
-                    Event Pass
+                    Official Event Pass
                   </span>
                 </div>
                 {registration.status === 'attended' ? (
@@ -107,9 +108,10 @@ export function TicketPage() {
                     Attended
                   </span>
                 ) : (
-                  <span className="text-xs font-semibold text-blue-300 bg-blue-300/10
+                  <span className="flex items-center gap-1 text-xs font-semibold text-blue-300 bg-blue-300/10
                                    border border-blue-300/20 px-2.5 py-1 rounded-full">
-                    Valid
+                    <ShieldCheck size={12} />
+                    Confirmed Pass
                   </span>
                 )}
               </div>
@@ -156,26 +158,32 @@ export function TicketPage() {
               <div className="absolute -right-3 top-0 w-6 h-6 rounded-full bg-background" />
             </div>
 
-            {/* QR section */}
+            {/* Ticket Code Section */}
             <div className="px-6 pb-6 flex flex-col items-center gap-4">
-              <div className="bg-white p-3 rounded-xl">
-                <QRCodeSVG
-                  value={qrPayload}
-                  size={160}
-                  bgColor="#FFFFFF"
-                  fgColor="#132B5C"
-                  level="H"
-                  aria-label="Registration QR code for venue check-in"
-                />
-              </div>
-
-              <div className="text-center">
-                <p className="text-xs text-blue-300 font-semibold uppercase tracking-wide mb-1">
-                  Ticket Code
+              <div className="w-full bg-white/10 border border-white/15 rounded-xl p-4 text-center">
+                <p className="text-xs text-blue-300 font-semibold uppercase tracking-wider mb-1">
+                  Unique Ticket Pass Code
                 </p>
-                <p className="font-mono text-lg font-bold text-white tracking-widest">
+                <p className="font-mono text-2xl font-extrabold text-white tracking-widest my-1">
                   {registration.ticket_code}
                 </p>
+
+                <button
+                  onClick={handleCopyCode}
+                  className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/15 hover:bg-white/25 text-xs text-white transition-colors"
+                >
+                  {copied ? (
+                    <>
+                      <Check size={13} className="text-green-400" />
+                      <span className="text-green-300 font-semibold">Code Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} />
+                      <span>Copy Ticket Code</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {user?.student_id && (
@@ -183,12 +191,12 @@ export function TicketPage() {
                   <p className="text-xs text-blue-300 font-semibold uppercase tracking-wide mb-0.5">
                     Student ID
                   </p>
-                  <p className="font-mono text-sm text-white/80">{user.student_id}</p>
+                  <p className="font-mono text-sm text-white/90 font-semibold">{user.student_id}</p>
                 </div>
               )}
 
-              <p className="text-xs text-white/40 text-center">
-                Scan at the venue entrance to check in
+              <p className="text-xs text-white/60 text-center max-w-xs leading-relaxed">
+                Show this Ticket Code or your Student ID at the venue registration desk for instant check-in.
               </p>
             </div>
           </div>
