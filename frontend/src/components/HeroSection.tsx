@@ -7,6 +7,7 @@ import { getEventThumbnail } from '@/utils/eventHelpers';
 import { formatEventDateRange } from '@/utils/dateFormatter';
 import { CategoryBadge } from '@/components/events/CategoryBadge';
 import { RegistrationProgress } from '@/components/events/RegistrationProgress';
+import { EventCountdown } from '@/components/events/EventCountdown';
 
 interface HeroSectionProps {
   events?: Event[];
@@ -97,6 +98,9 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
                       {activeEvent.short_description ?? activeEvent.description}
                     </p>
                   </div>
+
+                  {/* Countdown display */}
+                  <EventCountdown eventStart={activeEvent.event_start} />
 
                   {/* Date & Location */}
                   <div className="flex flex-col gap-3 border-t border-[#1E2D52] pt-5">
