@@ -18,6 +18,7 @@ app.use(express.json());
 // CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  'https://college-event-management-ashy.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
   'https://*.vercel.app'
