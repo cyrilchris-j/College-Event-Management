@@ -24,7 +24,7 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
     if (displayEvents.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % displayEvents.length);
-    }, 20000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [displayEvents.length]);
 

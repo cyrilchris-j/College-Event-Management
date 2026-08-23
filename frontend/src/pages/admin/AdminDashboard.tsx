@@ -23,7 +23,8 @@ import {
   deleteOrganizerAccount,
   type AdminDashboardTelemetry
 } from '@/services/adminService';
-import { deleteOrganizerEvent, downloadQRCodeAsImage } from '@/services/organizerService';
+import { deleteOrganizerEvent, updateOrganizerEvent, downloadQRCodeAsImage } from '@/services/organizerService';
+import { useAuth } from '@/hooks/useAuth';
 
 // ─── Utility ───────────────────────────────────────────────────────────────────
 
@@ -287,6 +288,7 @@ function EventDrawer({
 // ─── Main Admin Dashboard ─────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [telemetry, setTelemetry] = useState<AdminDashboardTelemetry | null>(null);
   const [_loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -298,6 +300,20 @@ export default function AdminDashboard() {
 
   // Admin QR Code Modal State
   const [qrModalEvent, setQrModalEvent] = useState<any | null>(null);
+
+  // Admin Edit Event Modal State
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    category: 'Technical',
+    venue: '',
+    capacity: 100,
+    status: 'published',
+    entryFee: 0,
+    isPaid: false,
+  });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Add Organizer Modal State
   const [showAddOrgModal, setShowAddOrgModal] = useState(false);
@@ -320,6 +336,109 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleSignOut = async () => {
+    setProfileMenuOpen(false);
+    await logout();
+    navigate('/login');
+  };
+
+  const handleOpenEditModal = (event: any) => {
+    setEditingEvent(event);
+    setEditForm({
+      title: event.title || '',
+      category: event.category || 'Technical',
+      venue: event.venue || '',
+      capacity: event.capacity || 100,
+      status: event.status === 'Live' ? 'published' : (event.status || 'published'),
+      entryFee: event.entry_fee || 0,
+      isPaid: Boolean(event.is_paid || (event.entry_fee && event.entry_fee > 0)),
+    });
+    setEditError(null);
+  };
+
+  const handleSaveEditEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEvent) return;
+    setEditSaving(true);
+    setEditError(null);
+
+    const { success, error } = await updateOrganizerEvent(editingEvent.id, {
+      title: editForm.title.trim(),
+      category: editForm.category,
+      venue: editForm.venue.trim(),
+      capacity: Number(editForm.capacity) || 100,
+      status: editForm.status,
+      entry_fee: editForm.isPaid ? Number(editForm.entryFee) || 0 : 0,
+      is_paid: editForm.isPaid,
+    });
+
+    setEditSaving(false);
+    if (success) {
+      setEditingEvent(null);
+      loadData();
+    } else {
+      setEditError(error || 'Failed to update event details.');
+    }
+  };
+
+  const exportReportExcel = (reportType: string) => {
+    let filename = 'Report';
+    let headers: string[] = [];
+    let rows: (string | number)[][] = [];
+
+    if (reportType === 'event_summary') {
+      filename = 'Campus_Event_Summary_Report';
+      headers = ['Event Title', 'Category', 'Organizing Club', 'Event Date', 'Venue', 'Capacity', 'Registrations', 'Status'];
+      rows = (telemetry?.events || []).map((e: any) => [
+        e.title || '',
+        e.category || '',
+        e.organizer || e.createdBy || '',
+        e.date || '',
+        e.venue || '',
+        e.capacity || 0,
+        e.registered || 0,
+        e.status || 'Active'
+      ]);
+    } else if (reportType === 'student_participation') {
+      filename = 'Student_Participation_Report';
+      headers = ['Student Name', 'Register Number', 'Department', 'Year of Study', 'Registered Event', 'Ticket Code', 'Attendance Status'];
+      rows = (telemetry?.registrations || []).map((r: any) => [
+        r.student || '',
+        r.rollNumber || '',
+        r.department || '',
+        r.year || '',
+        r.event || '',
+        r.ticketCode || '',
+        r.attended ? 'Attended' : 'Confirmed'
+      ]);
+    } else {
+      filename = 'Organizer_Performance_Audit';
+      headers = ['Club / Organizer Name', 'Organization Type', 'Total Events Hosted', 'Total Registrations', 'Attendance Rate'];
+      rows = (telemetry?.organizers || []).map((o: any) => [
+        o.name || o.full_name || '',
+        o.type || 'Technical Club',
+        o.events || 0,
+        o.registrations || 0,
+        `${o.attendanceRate || 100}%`
+      ]);
+    }
+
+    const csvLines = [headers.map(h => `"${h.padEnd(26, ' ')}"`).join(',')];
+    rows.forEach(r => {
+      const formattedRow = r.map(c => `"${String(c ?? '').trim().padEnd(24, ' ')}"`);
+      csvLines.push(formattedRow.join(','));
+    });
+
+    const csvBlob = new Blob(['\uFEFF' + csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const downloadUrl = URL.createObjectURL(csvBlob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `${filename}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleAddOrganizerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -403,11 +522,9 @@ export default function AdminDashboard() {
       <header className="sticky top-0 z-40 w-full pt-3 px-4 sm:px-8 bg-[#070D18]/90 backdrop-blur-md pb-2">
         <div className="max-w-7xl mx-auto rounded-full border border-blue-500/20 bg-[#0B1528]/85 backdrop-blur-md shadow-2xl px-6 py-2.5 flex items-center justify-between gap-6">
 
-          {/* Left: Round Blue Logo & College Title */}
+          {/* Left: KSR Logo & College Title */}
           <div className="flex items-center gap-3 flex-shrink-0 cursor-pointer" onClick={() => setActiveNav('Overview')}>
-            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
-              <GraduationCap size={19} className="text-white" />
-            </div>
+            <img src="/assets/logo.png" alt="KSR Logo" className="h-9 w-auto object-contain flex-shrink-0" />
             <div className="leading-tight">
               <p className="text-xs sm:text-sm font-bold tracking-tight text-white font-poppins">
                 KSR College of Engineering
@@ -431,21 +548,6 @@ export default function AdminDashboard() {
 
           {/* Right: Rounded Outlined Button & User Menu */}
           <div className="flex items-center gap-3 ml-auto lg:ml-0 flex-shrink-0">
-            <button
-              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
-              aria-label="Search"
-            >
-              <Search size={15} />
-            </button>
-
-            <button
-              className="relative w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
-              aria-label="Notifications"
-            >
-              <Bell size={15} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-            </button>
-
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileMenuOpen(p => !p)}
@@ -465,14 +567,8 @@ export default function AdminDashboard() {
                     <p className="text-[10px] text-slate-400">admin@ksrce.ac.in</p>
                   </div>
                   <button
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-blue-600/20 hover:text-blue-400 transition-colors"
-                  >
-                    Settings
-                  </button>
-                  <button
-                    onClick={() => setProfileMenuOpen(false)}
-                    className="w-full text-left px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/20 transition-colors"
+                    onClick={handleSignOut}
+                    className="w-full text-left px-4 py-2 text-xs text-rose-400 hover:bg-rose-500/20 transition-colors font-semibold"
                   >
                     Sign Out
                   </button>
@@ -745,7 +841,7 @@ export default function AdminDashboard() {
                                   <QrCode size={13} />
                                 </button>
                                 <button
-                                  onClick={e => { e.stopPropagation(); navigate(`/organizer/events/${event.id}/manage`); }}
+                                  onClick={e => { e.stopPropagation(); handleOpenEditModal(event); }}
                                   className="p-1.5 rounded-lg text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30"
                                   title="Edit Event Details"
                                 >
@@ -944,14 +1040,14 @@ export default function AdminDashboard() {
           <section className="admin-container py-10 space-y-6">
             <div>
               <h2 className="admin-heading text-2xl lg:text-3xl">Administrative Reports</h2>
-              <p className="text-xs text-slate-400 mt-1">Generate and download official reports for institutional audit.</p>
+              <p className="text-xs text-slate-400 mt-1">Generate and download official reports for institutional audit (Excel CSV format with generous cell spacing).</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { title: 'Campus Event Summary Report', desc: 'Complete overview of all events, attendance rates and organizer stats.', format: 'PDF / Excel' },
-                { title: 'Student Participation Report', desc: 'Detailed log of student participation by department and year.', format: 'PDF / CSV' },
-                { title: 'Organizer Performance Audit', desc: 'Analysis of event capacity vs attendance by club.', format: 'PDF' },
+                { type: 'event_summary', title: 'Campus Event Summary Report', desc: 'Complete overview of all events, attendance rates and organizer stats.', format: 'Excel CSV' },
+                { type: 'student_participation', title: 'Student Participation Report', desc: 'Detailed log of student participation by department and year.', format: 'Excel CSV' },
+                { type: 'organizer_audit', title: 'Organizer Performance Audit', desc: 'Analysis of event capacity vs attendance by club.', format: 'Excel CSV' },
               ].map(rep => (
                 <SpotlightCard key={rep.title} spotlightColor="rgba(59, 130, 246, 0.15)" className="bg-[#0D172A] border border-slate-800 rounded-xl p-6 shadow-xl space-y-4 flex flex-col justify-between">
                   <div className="space-y-2">
@@ -959,8 +1055,11 @@ export default function AdminDashboard() {
                     <h3 className="font-bold font-poppins text-white text-base">{rep.title}</h3>
                     <p className="text-xs text-slate-400">{rep.desc}</p>
                   </div>
-                  <button className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2">
-                    <Download size={14} /> Download Report ({rep.format})
+                  <button
+                    onClick={() => exportReportExcel(rep.type)}
+                    className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <Download size={14} /> Download Excel Report
                   </button>
                 </SpotlightCard>
               ))}
@@ -1053,6 +1152,119 @@ export default function AdminDashboard() {
             >
               <Download size={14} /> Download QR PNG
             </button>
+          </div>
+        </div>
+      )}
+      {/* ── Admin Edit Event Modal ── */}
+      {editingEvent && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0D172A] border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white">Edit Event: {editingEvent.title}</h3>
+              <button onClick={() => setEditingEvent(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+
+            {editError && <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">{editError}</div>}
+
+            <form onSubmit={handleSaveEditEvent} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Event Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.title}
+                  onChange={e => setEditForm({ ...editForm, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Category *</label>
+                  <select
+                    value={editForm.category}
+                    onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Technical">Technical</option>
+                    <option value="Cultural">Cultural</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Workshop">Workshop</option>
+                    <option value="Seminar">Seminar</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Status *</label>
+                  <select
+                    value={editForm.status}
+                    onChange={e => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="published">Published / Live</option>
+                    <option value="draft">Draft</option>
+                    <option value="closed">Registration Closed</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Venue *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.venue}
+                    onChange={e => setEditForm({ ...editForm, venue: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Seating Capacity *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editForm.capacity}
+                    onChange={e => setEditForm({ ...editForm, capacity: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <label className="flex items-center gap-2 text-slate-300 font-semibold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editForm.isPaid}
+                    onChange={e => setEditForm({ ...editForm, isPaid: e.target.checked })}
+                    className="rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Is Paid Event</span>
+                </label>
+
+                {editForm.isPaid && (
+                  <div className="flex-1">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Fee (₹)"
+                      value={editForm.entryFee}
+                      onChange={e => setEditForm({ ...editForm, entryFee: Number(e.target.value) })}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-slate-800">
+                <button type="button" onClick={() => setEditingEvent(null)} className="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-semibold">Cancel</button>
+                <button type="submit" disabled={editSaving} className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">{editSaving ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
