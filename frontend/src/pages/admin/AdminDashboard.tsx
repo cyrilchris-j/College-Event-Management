@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  GraduationCap, Search, Bell, ChevronRight, CalendarDays,
+  Search, ChevronRight, CalendarDays,
   Users, Building2, Ticket, MapPin, Clock, ShieldCheck,
   TrendingUp, TrendingDown, X, ArrowUpRight, Zap, ChevronDown, User,
   FileText, Download, Plus, Trash2, Edit3, QrCode
@@ -365,10 +365,10 @@ export default function AdminDashboard() {
 
     const { success, error } = await updateOrganizerEvent(editingEvent.id, {
       title: editForm.title.trim(),
-      category: editForm.category,
+      category: editForm.category as any,
       venue: editForm.venue.trim(),
       capacity: Number(editForm.capacity) || 100,
-      status: editForm.status,
+      status: editForm.status as any,
       entry_fee: editForm.isPaid ? Number(editForm.entryFee) || 0 : 0,
       is_paid: editForm.isPaid,
     });
