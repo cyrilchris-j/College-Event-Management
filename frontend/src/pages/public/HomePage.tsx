@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, SlidersHorizontal, X } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
@@ -30,9 +30,24 @@ export function HomePage() {
     filters.category !== 'All' ||
     filters.sort !== 'soonest';
 
-  const upcomingEvents = [...events]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 3);
+  const upcomingEvents = events
+    .filter(e => {
+      const eventStart = new Date(e.event_start).getTime();
+      return !isNaN(eventStart) && eventStart >= Date.now();
+    })
+    .sort((a, b) => new Date(a.event_start).getTime() - new Date(b.event_start).getTime())
+    .slice(0, 4);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const scrollTarget = params.get('scroll');
+    if (scrollTarget) {
+      const el = document.getElementById(scrollTarget);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
+      }
+    }
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -46,7 +61,7 @@ export function HomePage() {
 
       <main id="main-content">
         {/* ── Hero ────────────────────────────────────────────────────── */}
-        <HeroSection />
+        <HeroSection events={events} />
 
         {/* ── Main Content: Events + Contact ──────────────────────────── */}
         <section

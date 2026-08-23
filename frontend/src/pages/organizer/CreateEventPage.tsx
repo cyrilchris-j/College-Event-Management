@@ -14,12 +14,11 @@ import type { EventCategory } from '@/types';
 
 const CATEGORIES: EventCategory[] = [
   'Technical',
-  'Hackathon',
   'Workshop',
   'Seminar',
   'Cultural',
   'Sports',
-  'Exhibition',
+  'Other',
 ];
 
 export function CreateEventPage() {
@@ -72,25 +71,98 @@ export function CreateEventPage() {
     e.preventDefault();
     setError(null);
 
-    if (!form.title.trim()) {
-      setError('Please provide an event title.');
+    // 1. Title validation
+    const trimmedTitle = form.title.trim();
+    if (!trimmedTitle || trimmedTitle.length < 3) {
+      setError('Event title must be at least 3 characters long.');
       return;
     }
-    if (!form.description.trim()) {
-      setError('Please provide an event description.');
+
+    // 2. Full Description validation (fixes events_description_check Postgres constraint error)
+    const trimmedDesc = form.description.trim();
+    if (!trimmedDesc || trimmedDesc.length < 10) {
+      setError('Event full description must be at least 10 characters long.');
       return;
     }
+
+    // 3. Organizing Club validation
+    const trimmedClub = form.organizerClub.trim();
+    if (!trimmedClub) {
+      setError('Please specify the organizing club or association.');
+      return;
+    }
+
+    // 4. Date validation
     if (!form.eventStart) {
       setError('Please select the event start date and time.');
       return;
     }
-    if (!form.venue.trim()) {
-      setError('Please specify the event venue / meeting link.');
+
+    const startDate = new Date(form.eventStart).getTime();
+    if (isNaN(startDate)) {
+      setError('Invalid event start date and time format.');
       return;
     }
-    if (!form.capacity || parseInt(form.capacity, 10) <= 0) {
-      setError('Capacity must be at least 1 seat.');
+
+    if (form.eventEnd) {
+      const endDate = new Date(form.eventEnd).getTime();
+      if (isNaN(endDate) || endDate < startDate) {
+        setError('Event end date & time cannot be earlier than the start date & time.');
+        return;
+      }
+    }
+
+    if (form.registrationDeadline) {
+      const deadlineDate = new Date(form.registrationDeadline).getTime();
+      if (isNaN(deadlineDate) || deadlineDate > startDate) {
+        setError('Registration deadline cannot be after the event start date & time.');
+        return;
+      }
+    }
+
+    // 5. Venue validation
+    const trimmedVenue = form.venue.trim();
+    if (!trimmedVenue || trimmedVenue.length < 3) {
+      setError('Please specify a valid event venue or meeting link (at least 3 characters).');
       return;
+    }
+
+    // 6. Capacity validation
+    const parsedCapacity = parseInt(form.capacity, 10);
+    if (isNaN(parsedCapacity) || parsedCapacity < 1) {
+      setError('Total seating capacity must be at least 1 seat.');
+      return;
+    }
+
+    // 7. Team format size validation
+    if (form.participationType === 'team') {
+      const parsedTeamSize = parseInt(form.teamSize, 10);
+      if (isNaN(parsedTeamSize) || parsedTeamSize < 2 || parsedTeamSize > 20) {
+        setError('Team size must be between 2 and 20 members.');
+        return;
+      }
+    }
+
+    // 8. Entry Fee & Payment validation (strictly disallow negative fee)
+    const parsedFee = parseFloat(form.entryFee);
+    if (isNaN(parsedFee) || parsedFee < 0) {
+      setError('Entry fee amount cannot be negative.');
+      return;
+    }
+
+    if (form.isPaid) {
+      if (parsedFee <= 0) {
+        setError('Paid events require an entry fee greater than ₹0. Set fee or toggle off paid mode.');
+        return;
+      }
+      if (!form.gpayNumber.trim() || !/^\d{10}$/.test(form.gpayNumber.trim())) {
+        setError('Please enter a valid 10-digit Google Pay mobile number.');
+        return;
+      }
+      if (!form.gpayUpiId.trim() || !form.gpayUpiId.includes('@')) {
+        setError('Please enter a valid UPI ID (e.g. clubname@upi).');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -527,8 +599,14 @@ export function CreateEventPage() {
                     label="Entry Fee Amount (₹)"
                     type="number"
                     id="event-fee"
+                    min="0"
+                    step="1"
                     value={form.entryFee}
-                    onChange={e => setForm(p => ({ ...p, entryFee: e.target.value }))}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (parseFloat(val) < 0) return;
+                      setForm(p => ({ ...p, entryFee: val }));
+                    }}
                     placeholder="e.g. 150"
                     required={form.isPaid}
                   />

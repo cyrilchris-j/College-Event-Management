@@ -87,7 +87,7 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardTelemetry
       capacity: e.capacity || 100,
       registered: regsData.filter((r: any) => r.event_id === e.id).length,
       attended: regsData.filter((r: any) => r.event_id === e.id && (r.status === 'attended' || r.attended === true)).length,
-      status: e.status === 'published' ? 'Live' : 'Open',
+      status: e.status === 'published' ? 'Open' : (e.status || 'Open'),
       thumbnail: e.banner_url || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=300&h=200&fit=crop',
       description: e.description || e.short_description || '',
     }));
@@ -152,7 +152,7 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardTelemetry
     }));
 
     const totalEvents = formattedEvents.length;
-    const activeEvents = formattedEvents.filter((e: any) => e.status === 'Live' || e.status === 'Open').length;
+    const activeEvents = formattedEvents.filter((e: any) => e.status === 'Open' || e.status === 'Almost Full').length;
     const totalStudents = registeredStudents.length;
     const totalOrganizers = organizers.length;
     const totalRegistrations = formattedRegistrations.length;
@@ -191,4 +191,66 @@ export async function fetchAdminDashboardData(): Promise<AdminDashboardTelemetry
     organizers: [],
     registrations: [],
   };
+}
+
+/**
+ * Create a new organizer account
+ */
+export async function createOrganizerAccount(organizer: {
+  email: string;
+  password?: string;
+  clubName: string;
+}): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const response = await fetch(`${getApiBase()}/admin/organizers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(organizer),
+    });
+    if (response.ok) {
+      return { success: true, error: null };
+    }
+  } catch (backendErr) {
+    console.warn('[createOrganizerAccount] Backend API warning:', backendErr);
+  }
+
+  try {
+    const { data: authData, error: authErr } = await supabase.auth.signUp({
+      email: organizer.email.trim(),
+      password: organizer.password || 'Campus@123',
+      options: {
+        data: { role: 'organizer', full_name: organizer.clubName }
+      }
+    });
+
+    if (authErr && !authErr.message.includes('already registered')) {
+      return { success: false, error: authErr.message };
+    }
+
+    const userId = authData.user?.id || crypto.randomUUID();
+    const { error: profileErr } = await supabase.from('profiles').upsert({
+      id: userId,
+      email: organizer.email.trim(),
+      role: 'organizer',
+      student_id: null,
+    });
+
+    if (profileErr) return { success: false, error: profileErr.message };
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to create organizer.' };
+  }
+}
+
+/**
+ * Delete an organizer account
+ */
+export async function deleteOrganizerAccount(id: string): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    if (error) return { success: false, error: error.message };
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to delete organizer.' };
+  }
 }

@@ -110,10 +110,15 @@ export function StudentQRScannerModal({
       isMounted = false;
       clearTimeout(timer);
       if (scannerRef.current) {
-        if (scannerRef.current.isScanning) {
-          scannerRef.current.stop().catch(console.error);
+        try {
+          scannerRef.current.stop().then(() => {
+            scannerRef.current?.clear();
+          }).catch(() => {
+            try { scannerRef.current?.clear(); } catch (_) {}
+          });
+        } catch (e) {
+          console.warn('Error clearing scanner instance:', e);
         }
-        scannerRef.current.clear();
       }
     };
   }, [isOpen, registration.id, event]);

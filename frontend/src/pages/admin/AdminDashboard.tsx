@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, Search, Bell, ChevronRight, CalendarDays,
   Users, Building2, Ticket, MapPin, Clock, ShieldCheck,
   TrendingUp, TrendingDown, X, ArrowUpRight, Zap, ChevronDown, User,
-  FileText, Download
+  FileText, Download, Plus, Trash2, Edit3, QrCode
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import './admin.css';
 import { SplitText } from '@/components/reactbits/SplitText';
 import { ShinyText } from '@/components/reactbits/ShinyText';
@@ -15,7 +17,13 @@ import {
   EVENT_STATUS_CONFIG, CATEGORY_COLORS,
   type AdminEvent
 } from './adminData';
-import { fetchAdminDashboardData, type AdminDashboardTelemetry } from '@/services/adminService';
+import {
+  fetchAdminDashboardData,
+  createOrganizerAccount,
+  deleteOrganizerAccount,
+  type AdminDashboardTelemetry
+} from '@/services/adminService';
+import { deleteOrganizerEvent, downloadQRCodeAsImage } from '@/services/organizerService';
 
 // ─── Utility ───────────────────────────────────────────────────────────────────
 
@@ -32,7 +40,7 @@ function StatusBadge({ status }: { status: string }) {
       className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap"
       style={{ color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.border}` }}
     >
-      {status === 'Live' && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
+      {(status === 'Open' || status === 'Active') && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
       {status}
     </span>
   );
@@ -278,26 +286,79 @@ function EventDrawer({
 
 // ─── Main Admin Dashboard ─────────────────────────────────────────────────────
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [telemetry, setTelemetry] = useState<AdminDashboardTelemetry | null>(null);
-
-  const [activeNav, setActiveNav] = useState('Overview');
-  const [selectedEvent, setSelectedEvent] = useState<AdminEvent | null>(null);
+  const [_loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [activeNav, setActiveNav] = useState('Overview');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
+
+  // Admin QR Code Modal State
+  const [qrModalEvent, setQrModalEvent] = useState<any | null>(null);
+
+  // Add Organizer Modal State
+  const [showAddOrgModal, setShowAddOrgModal] = useState(false);
+  const [orgForm, setOrgForm] = useState({ clubName: '', email: '', password: '' });
+  const [orgSubmitting, setOrgSubmitting] = useState(false);
+  const [orgError, setOrgError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchAdminDashboardData();
+      setTelemetry(data);
+    } catch (e) {
+      console.error('Failed to load admin telemetry:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const data = await fetchAdminDashboardData();
-        setTelemetry(data);
-      } catch (e) {
-        console.error('Failed to load admin telemetry:', e);
-      }
-    }
     loadData();
   }, []);
+
+  const handleAddOrganizerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgForm.clubName || !orgForm.email) {
+      setOrgError('Please fill in club name and email.');
+      return;
+    }
+    setOrgSubmitting(true);
+    setOrgError(null);
+    const { success, error } = await createOrganizerAccount(orgForm);
+    setOrgSubmitting(false);
+    if (success) {
+      setShowAddOrgModal(false);
+      setOrgForm({ clubName: '', email: '', password: '' });
+      loadData();
+    } else {
+      setOrgError(error || 'Failed to create organizer.');
+    }
+  };
+
+  const handleDeleteOrganizer = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to remove organizer "${name}"?`)) return;
+    const { success, error } = await deleteOrganizerAccount(id);
+    if (success) {
+      loadData();
+    } else {
+      alert(`Delete failed: ${error}`);
+    }
+  };
+
+  const handleDeleteEvent = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete event "${title}"? This cannot be undone.`)) return;
+    const { success, error } = await deleteOrganizerEvent(id);
+    if (success) {
+      loadData();
+    } else {
+      alert(`Error deleting event: ${error}`);
+    }
+  };
 
   const currentEvents = telemetry?.events || [];
   const currentStudents = telemetry?.students || [];
@@ -515,9 +576,9 @@ export default function AdminDashboard() {
                     >
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <div className="live-dot" />
-                        <span className="text-xs font-bold tracking-widest" style={{ color: '#3B82F6' }}>LIVE</span>
+                        <span className="text-xs font-bold tracking-widest" style={{ color: '#3B82F6' }}>ACTIVE</span>
                       </div>
-                      <p className="text-4xl font-bold font-inter mt-1" style={{ color: '#F7F8FA' }}>18</p>
+                      <p className="text-4xl font-bold font-inter mt-1" style={{ color: '#F7F8FA' }}>{currentMetrics.activeEvents}</p>
                       <p className="text-xs mt-1" style={{ color: '#68778C' }}>Active Events</p>
                     </div>
                   </div>
@@ -534,7 +595,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 md:grid-cols-6 divide-x" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
                   {[
                     { icon: <CalendarDays size={14} />, value: `${currentMetrics.totalEvents}`, label: 'Total Events', trend: '+12.4% this month', trendUp: true, delay: 0 },
-                    { icon: <Zap size={14} />, value: `${currentMetrics.activeEvents}`, label: 'Active', trend: '3 Live now', trendUp: true, delay: 80 },
+                    { icon: <Zap size={14} />, value: `${currentMetrics.activeEvents}`, label: 'Active', trend: `${currentMetrics.activeEvents} Active now`, trendUp: true, delay: 80 },
                     { icon: <Users size={14} />, value: `${currentMetrics.totalStudents.toLocaleString()}`, label: 'Students', trend: '+320 this sem', trendUp: true, delay: 160 },
                     { icon: <Building2 size={14} />, value: `${currentMetrics.totalOrganizers}`, label: 'Organizers', trend: '+2 new', trendUp: true, delay: 240 },
                     { icon: <Ticket size={14} />, value: `${currentMetrics.totalRegistrations.toLocaleString()}`, label: 'Registrations', trend: '+18.7% this month', trendUp: true, delay: 320 },
@@ -559,8 +620,15 @@ export default function AdminDashboard() {
                 <p className="text-xs text-slate-400 mt-1">Manage and monitor all active and upcoming campus events.</p>
               </div>
 
-              {/* Controls & Search */}
+              {/* Controls & Search & Create Event */}
               <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => navigate('/organizer/create-event')}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all flex items-center gap-1.5 shadow-md"
+                >
+                  <Plus size={14} /> Create Event
+                </button>
+
                 <div className="relative">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -591,10 +659,10 @@ export default function AdminDashboard() {
                   className="px-3 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded-lg text-slate-300 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="All">All Statuses</option>
-                  <option value="Live">Live</option>
                   <option value="Open">Open</option>
-                  <option value="Upcoming">Upcoming</option>
-                  <option value="Completed">Completed</option>
+                  <option value="Almost Full">Almost Full</option>
+                  <option value="Full">Full</option>
+                  <option value="Closed">Closed</option>
                 </select>
               </div>
             </div>
@@ -660,15 +728,37 @@ export default function AdminDashboard() {
                               </div>
                             </td>
                             <td><span className="text-sm font-bold" style={{ color: '#3B82F6' }}>{attPct}%</span></td>
-                            <td><StatusBadge status={event.status} /></td>
+                             <td><StatusBadge status={event.status} /></td>
                             <td>
-                              <button
-                                onClick={e => { e.stopPropagation(); setSelectedEvent(event); }}
-                                className="px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all"
-                                style={{ background: 'rgba(59,130,246,0.15)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)' }}
-                              >
-                                View
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={e => { e.stopPropagation(); setSelectedEvent(event); }}
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  onClick={e => { e.stopPropagation(); setQrModalEvent(event); }}
+                                  className="p-1.5 rounded-lg text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700"
+                                  title="Download Hall QR Code"
+                                >
+                                  <QrCode size={13} />
+                                </button>
+                                <button
+                                  onClick={e => { e.stopPropagation(); navigate(`/organizer/events/${event.id}/manage`); }}
+                                  className="p-1.5 rounded-lg text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30"
+                                  title="Edit Event Details"
+                                >
+                                  <Edit3 size={13} />
+                                </button>
+                                <button
+                                  onClick={e => { e.stopPropagation(); handleDeleteEvent(event.id, event.title); }}
+                                  className="p-1.5 rounded-lg text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30"
+                                  title="Delete Event"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -737,9 +827,18 @@ export default function AdminDashboard() {
         {/* TAB 4: ORGANIZERS */}
         {activeNav === 'Organizers' && (
           <section className="admin-container py-10">
-            <div className="mb-6">
-              <h2 className="admin-heading text-2xl lg:text-3xl">Club & Event Organizers</h2>
-              <p className="text-xs text-slate-400 mt-1">Institutional club coordinators and faculty organizers from Supabase database.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="admin-heading text-2xl lg:text-3xl">Club & Event Organizers</h2>
+                <p className="text-xs text-slate-400 mt-1">Institutional club coordinators and faculty organizers from Supabase database.</p>
+              </div>
+
+              <button
+                onClick={() => setShowAddOrgModal(true)}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-lg"
+              >
+                <Plus size={15} /> Add New Organizer
+              </button>
             </div>
 
             {currentOrganizers.length === 0 ? (
@@ -749,18 +848,30 @@ export default function AdminDashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentOrganizers.map((org: any) => (
-                  <SpotlightCard key={org.id || org.name} spotlightColor="rgba(59, 130, 246, 0.15)" className="bg-[#0D172A] border border-slate-800 rounded-xl p-6 shadow-xl space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-12 h-12 rounded-xl border font-bold flex items-center justify-center text-lg"
-                        style={{ color: org.color || '#3B82F6', borderColor: `${org.color || '#3B82F6'}40`, background: `${org.color || '#3B82F6'}15` }}
-                      >
-                        {org.initials || 'CC'}
+                  <SpotlightCard key={org.id || org.name} spotlightColor="rgba(59, 130, 246, 0.15)" className="bg-[#0D172A] border border-slate-800 rounded-xl p-6 shadow-xl space-y-4 relative">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-12 h-12 rounded-xl border font-bold flex items-center justify-center text-lg"
+                          style={{ color: org.color || '#3B82F6', borderColor: `${org.color || '#3B82F6'}40`, background: `${org.color || '#3B82F6'}15` }}
+                        >
+                          {org.initials || 'CC'}
+                        </div>
+                        <div>
+                          <h3 className="font-bold font-poppins text-white text-base leading-tight">{org.name || org.full_name}</h3>
+                          <p className="text-xs text-slate-400 mt-0.5">{org.type || org.department || 'Organizer'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold font-poppins text-white text-base leading-tight">{org.name || org.full_name}</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">{org.type || org.department || 'Organizer'}</p>
-                      </div>
+
+                      {org.id && (
+                        <button
+                          onClick={() => handleDeleteOrganizer(org.id, org.name || org.email)}
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Remove Organizer Account"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </div>
 
                     <div className="space-y-2 text-xs text-slate-300 pt-2 border-t border-slate-800">
@@ -779,8 +890,8 @@ export default function AdminDashboard() {
         {activeNav === 'Registrations' && (
           <section className="admin-container py-10">
             <div className="mb-6">
-              <h2 className="admin-heading text-2xl lg:text-3xl">Live Registrations</h2>
-              <p className="text-xs text-slate-400 mt-1">Live campus registration activity from Supabase database.</p>
+              <h2 className="admin-heading text-2xl lg:text-3xl">Registrations</h2>
+              <p className="text-xs text-slate-400 mt-1">Campus registration activity from Supabase database.</p>
             </div>
 
             <div className="rounded-xl overflow-hidden bg-[#0D172A] border border-slate-800 shadow-xl">
@@ -859,6 +970,92 @@ export default function AdminDashboard() {
       </main>
 
       <EventDrawer event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+
+      {/* ── Add Organizer Modal ── */}
+      {showAddOrgModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0D172A] border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white">Add New Organizer</h3>
+              <button onClick={() => setShowAddOrgModal(false)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+
+            {orgError && <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-xl">{orgError}</div>}
+
+            <form onSubmit={handleAddOrganizerSubmit} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Club / Organization Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. ACM Student Chapter"
+                  value={orgForm.clubName}
+                  onChange={e => setOrgForm({ ...orgForm, clubName: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Organizer Email (@ksrce.ac.in) *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. acm.lead@ksrce.ac.in"
+                  value={orgForm.email}
+                  onChange={e => setOrgForm({ ...orgForm, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Initial Password</label>
+                <input
+                  type="password"
+                  placeholder="Defaults to Campus@123"
+                  value={orgForm.password}
+                  onChange={e => setOrgForm({ ...orgForm, password: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowAddOrgModal(false)} className="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 font-semibold">Cancel</button>
+                <button type="submit" disabled={orgSubmitting} className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold">{orgSubmitting ? 'Creating...' : 'Create Account'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Admin Hall QR Modal ── */}
+      {qrModalEvent && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0D172A] border border-slate-800 rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white truncate">{qrModalEvent.title}</h3>
+              <button onClick={() => setQrModalEvent(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+
+            <div id={`admin-qr-container-${qrModalEvent.id}`} className="bg-white p-4 rounded-xl flex items-center justify-center mx-auto w-48 h-48">
+              <QRCodeSVG
+                value={JSON.stringify({ event_id: qrModalEvent.id, title: qrModalEvent.title })}
+                size={160}
+                level="H"
+                includeMargin
+              />
+            </div>
+
+            <p className="text-xs text-slate-400">Official Venue Check-in QR Code for Hall Projector</p>
+
+            <button
+              onClick={() => downloadQRCodeAsImage(`admin-qr-container-${qrModalEvent.id}`, qrModalEvent.title)}
+              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2"
+            >
+              <Download size={14} /> Download QR PNG
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

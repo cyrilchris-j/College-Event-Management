@@ -96,12 +96,21 @@ export function EventRegistrationPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
+    setError(null);
     getEventById(id)
       .then(data => {
-        if (!data) setError('Event not found.');
-        setEvent(data);
+        if (!data) {
+          setError('Event not found.');
+          setEvent(null);
+        } else {
+          setError(null);
+          setEvent(data);
+        }
       })
-      .catch(err => setError(err.message))
+      .catch(err => {
+        setError(err.message || 'Failed to load event details.');
+        setEvent(null);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 

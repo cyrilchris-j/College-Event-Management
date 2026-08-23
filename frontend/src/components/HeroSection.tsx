@@ -24,7 +24,7 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
     if (displayEvents.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % displayEvents.length);
-    }, 5000);
+    }, 20000);
     return () => clearInterval(interval);
   }, [displayEvents.length]);
 
@@ -109,17 +109,41 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
                   <RegistrationProgress event={activeEvent} showCount />
 
                   {/* Button */}
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    className="w-full justify-center text-sm py-3 font-semibold shadow-md"
-                    onClick={e => {
-                      e.stopPropagation();
-                      navigate(`/events/${activeEvent.id}/register`);
-                    }}
-                  >
-                    Register Now
-                  </Button>
+                  {(() => {
+                    const isClosed =
+                      activeEvent.status === 'completed' ||
+                      activeEvent.status === 'closed' ||
+                      activeEvent.status === 'draft' ||
+                      (activeEvent.registration_deadline && new Date(activeEvent.registration_deadline) < new Date()) ||
+                      (activeEvent.capacity > 0 && (activeEvent.registered_count ?? 0) >= activeEvent.capacity);
+
+                    if (isClosed) {
+                      return (
+                        <Button
+                          variant="secondary"
+                          size="lg"
+                          disabled
+                          className="w-full justify-center text-sm py-3 font-semibold bg-slate-800 text-slate-400 border-slate-700 cursor-not-allowed opacity-80"
+                        >
+                          Registration Closed
+                        </Button>
+                      );
+                    }
+
+                    return (
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        className="w-full justify-center text-sm py-3 font-semibold shadow-md"
+                        onClick={e => {
+                          e.stopPropagation();
+                          navigate(`/events/${activeEvent.id}/register`);
+                        }}
+                      >
+                        Register Now
+                      </Button>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -130,10 +154,7 @@ export function HeroSection({ events = [] }: HeroSectionProps) {
                 <Calendar size={26} />
               </div>
               <div>
-                <h3 className="text-lg font-bold">No Events Uploaded</h3>
-                <p className="text-sm text-slate-400 mt-2 max-w-[280px] mx-auto leading-relaxed">
-                  Events uploaded by the admin or organizers will show up here automatically.
-                </p>
+                <h3 className="text-lg font-bold">No Events Currently Featured</h3>
               </div>
             </div>
           )}

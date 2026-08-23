@@ -7,7 +7,8 @@ export type EventCategory =
   | 'Seminar'
   | 'Cultural'
   | 'Exhibition'
-  | 'Sports';
+  | 'Sports'
+  | 'Other';
 
 export type EventStatus =
   | 'draft'

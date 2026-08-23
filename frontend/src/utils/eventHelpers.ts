@@ -133,6 +133,12 @@ export const CATEGORY_CONFIG: Record<EventCategory, CategoryConfig> = {
     bgColor: 'bg-orange-50',
     borderColor: 'border-orange-200',
   },
+  Other: {
+    label: 'Other',
+    textColor: 'text-slate-700',
+    bgColor: 'bg-slate-50',
+    borderColor: 'border-slate-200',
+  },
 };
 
 export function getCategoryConfig(category: EventCategory): CategoryConfig {
@@ -164,6 +170,8 @@ const CATEGORY_THUMBS: Record<EventCategory, string> = {
     'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=200&h=130&fit=crop',
   Sports:
     'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=200&h=130&fit=crop',
+  Other:
+    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=200&h=130&fit=crop',
 };
 
 export function getEventThumbnail(event: Event): string {

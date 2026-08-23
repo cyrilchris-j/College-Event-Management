@@ -35,7 +35,7 @@ export function OrganizerDashboard() {
   // Load events
   const loadData = () => {
     setLoading(true);
-    getOrganizerEvents()
+    getOrganizerEvents(user?.id)
       .then(setEvents)
       .finally(() => setLoading(false));
   };

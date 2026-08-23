@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  GraduationCap, Plus, User, LogOut, ChevronDown,
+  Plus, User, LogOut, ChevronDown,
   LayoutDashboard, Calendar, Ticket, QrCode, FileText, Globe,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,11 +45,9 @@ export function OrganizerHeader() {
           {/* Logo & College Branding */}
           <Link
             to="/organizer"
-            className="flex items-center gap-3 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-blue-500 rounded-lg"
+            className="flex items-center gap-3 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-blue-500 rounded-xl"
           >
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
-              <GraduationCap size={22} className="text-white" />
-            </div>
+            <img src="/assets/logo.png" alt="KSR Logo" className="h-9 w-auto object-contain flex-shrink-0" />
             <div className="hidden sm:block leading-tight">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-bold font-poppins text-white leading-tight">

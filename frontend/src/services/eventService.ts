@@ -110,62 +110,83 @@ export async function getPublishedEvents(params?: {
  * Fetches a single event by ID.
  */
 export async function getEventById(id: string): Promise<Event | null> {
-  const { data, error } = await supabase
-    .from('events')
-    .select(`
-      id, title, description, short_description, category,
-      event_start, event_end, venue, capacity,
-      banner_url, organizer_id, organizer_club, registration_deadline,
-      entry_fee, is_paid, gpay_number, gpay_upi_id,
-      status, created_at,
-      registrations (count)
-    `)
-    .eq('id', id)
-    .single();
+  if (!id || id === 'undefined') return null;
 
-  if (error) {
-    if (error.code === 'PGRST116') return null; // not found
-    console.error('[eventService] getEventById error:', error.message);
-    throw new Error(error.message);
+  try {
+    let data: any = null;
+
+    // 1. Try fetching event with registrations count join
+    const { data: eventData } = await supabase
+      .from('events')
+      .select(`
+        id, title, description, short_description, category,
+        event_start, event_end, venue, capacity,
+        banner_url, organizer_id, organizer_club, registration_deadline,
+        entry_fee, is_paid, gpay_number, gpay_upi_id,
+        status, created_at,
+        registrations (count)
+      `)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (eventData) {
+      data = eventData;
+    } else {
+      // 2. Fallback: Fetch plain event record without registrations join (bypasses RLS join locks)
+      const { data: plainEvent, error: plainErr } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (plainErr || !plainEvent) {
+        console.warn('[eventService] getEventById plain fetch error:', plainErr?.message);
+        return null;
+      }
+      data = plainEvent;
+    }
+
+    const registeredCount = data.registrations?.[0]?.count || 0;
+    const capacity = data.capacity || 1;
+    const percentage = Math.round((registeredCount / capacity) * 100);
+
+    let registrationStatus: 'open' | 'almost_full' | 'full' | 'closed' = 'open';
+    if (registeredCount >= capacity && capacity > 0) {
+      registrationStatus = 'full';
+    } else if (percentage >= 80) {
+      registrationStatus = 'almost_full';
+    } else if (data.registration_deadline && new Date() > new Date(data.registration_deadline)) {
+      registrationStatus = 'closed';
+    }
+
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      short_description: data.short_description || (data.description ? data.description.slice(0, 120) : ''),
+      category: data.category as EventCategory,
+      event_start: data.event_start,
+      event_end: data.event_end,
+      venue: data.venue,
+      capacity: data.capacity,
+      registered_count: registeredCount,
+      banner_url: data.banner_url,
+      organizer_id: data.organizer_id,
+      organizer_name: data.organizer_club || 'Campus Organization',
+      registration_deadline: data.registration_deadline,
+      entry_fee: Number(data.entry_fee) || 0,
+      is_paid: Boolean(data.is_paid || (Number(data.entry_fee) > 0)),
+      gpay_number: data.gpay_number || '9876543210',
+      gpay_upi_id: data.gpay_upi_id || 'campusconnect@upi',
+      status: data.status,
+      created_at: data.created_at,
+      registration_status: registrationStatus,
+      registration_percentage: percentage,
+    };
+  } catch (err: any) {
+    console.error('[eventService] getEventById exception:', err);
+    return null;
   }
-
-  const registeredCount = data.registrations?.[0]?.count || 0;
-  const capacity = data.capacity || 1;
-  const percentage = Math.round((registeredCount / capacity) * 100);
-
-  let registrationStatus: 'open' | 'almost_full' | 'full' | 'closed' = 'open';
-  if (registeredCount >= capacity) {
-    registrationStatus = 'full';
-  } else if (percentage >= 80) {
-    registrationStatus = 'almost_full';
-  } else if (data.registration_deadline && new Date() > new Date(data.registration_deadline)) {
-    registrationStatus = 'closed';
-  }
-
-  return {
-    id: data.id,
-    title: data.title,
-    description: data.description,
-    short_description: data.short_description || data.description.slice(0, 120),
-    category: data.category as EventCategory,
-    event_start: data.event_start,
-    event_end: data.event_end,
-    venue: data.venue,
-    capacity: data.capacity,
-    registered_count: registeredCount,
-    banner_url: data.banner_url,
-    organizer_id: data.organizer_id,
-    organizer_name: data.organizer_club || 'Campus Organization',
-    registration_deadline: data.registration_deadline,
-    entry_fee: Number(data.entry_fee) || 0,
-    is_paid: Boolean(data.is_paid || (Number(data.entry_fee) > 0)),
-    gpay_number: data.gpay_number || '9876543210',
-    gpay_upi_id: data.gpay_upi_id || 'campusconnect@upi',
-    status: data.status,
-    created_at: data.created_at,
-    registration_status: registrationStatus,
-    registration_percentage: percentage,
-  };
 }
 
 /**

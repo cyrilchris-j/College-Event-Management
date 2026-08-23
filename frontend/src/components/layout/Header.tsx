@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LogIn,
   Menu,
   X,
-  GraduationCap,
   User,
   Ticket,
   LogOut,
@@ -26,14 +25,17 @@ export function Header({
 }: HeaderProps) {
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('');
 
   const handleScrollTo = (id: string) => {
     setMobileOpen(false);
+    setActiveSection(id);
     if (window.location.pathname !== '/') {
-      navigate(`/#${id}`);
+      navigate(`/?scroll=${id}`);
       return;
     }
     const el = document.getElementById(id);
@@ -41,6 +43,40 @@ export function Header({
       el.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  useEffect(() => {
+    if (location.pathname === '/organizer') {
+      setActiveSection('organizer');
+      return;
+    }
+    if (location.pathname === '/admin') {
+      setActiveSection('admin');
+      return;
+    }
+    if (location.pathname === '/my-registrations') {
+      setActiveSection('tickets');
+      return;
+    }
+
+    const handleScroll = () => {
+      if (window.location.pathname !== '/') return;
+      const sections = ['all-events-section', 'upcoming-events-section', 'contact'];
+      for (const sectionId of sections) {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 250 && rect.bottom >= 100) {
+            setActiveSection(sectionId);
+            return;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [location.pathname]);
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -62,15 +98,18 @@ export function Header({
         {/* ── LEFT: College branding ──────────────────────────────────── */}
         <Link
           to="/"
-          className="flex items-center gap-2.5 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-blue-500 rounded-lg"
+          className="flex items-center gap-2.5 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-blue-500 rounded-xl"
           aria-label="KSR College of Engineering — Home"
         >
-          <div
-            className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0"
-            aria-hidden="true"
-          >
-            <GraduationCap size={16} className="text-white" />
-          </div>
+          <img
+            src="/assets/logo.png"
+            alt="KSR Logo"
+            className="h-9 w-auto object-contain flex-shrink-0"
+            onError={(e) => {
+              // Fallback icon if image path fails
+              (e.currentTarget as HTMLElement).style.display = 'none';
+            }}
+          />
           <div className="hidden sm:block leading-none">
             <p className="text-xs font-bold font-poppins text-white leading-none">
               KSR College of Engineering
@@ -82,27 +121,70 @@ export function Header({
         </Link>
 
         {/* ── CENTER: Navigation Links ─────────────────────────────────── */}
-        <nav className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider text-slate-300">
+        <nav className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-wider">
           <button
             onClick={() => handleScrollTo('all-events-section')}
-            className="hover:text-blue-400 transition-colors uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer"
+            className={`transition-all uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer ${
+              activeSection === 'all-events-section'
+                ? 'text-blue-400 border-b-2 border-blue-400 pb-0.5'
+                : 'text-slate-300 hover:text-blue-400'
+            }`}
           >
             All Events
           </button>
           <button
             onClick={() => handleScrollTo('upcoming-events-section')}
-            className="hover:text-blue-400 transition-colors uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer"
+            className={`transition-all uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer ${
+              activeSection === 'upcoming-events-section'
+                ? 'text-blue-400 border-b-2 border-blue-400 pb-0.5'
+                : 'text-slate-300 hover:text-blue-400'
+            }`}
           >
             Upcoming Events
           </button>
-          {user && (
-            <Link to="/my-registrations" className="hover:text-blue-400 transition-colors">
+          {user && (user.role === 'student' || !user.role) && (
+            <Link
+              to="/my-registrations"
+              className={`transition-all ${
+                activeSection === 'tickets'
+                  ? 'text-blue-400 border-b-2 border-blue-400 pb-0.5'
+                  : 'text-slate-300 hover:text-blue-400'
+              }`}
+            >
               My Tickets
+            </Link>
+          )}
+          {user && user.role === 'organizer' && (
+            <Link
+              to="/organizer"
+              className={`transition-all ${
+                activeSection === 'organizer'
+                  ? 'text-blue-400 border-b-2 border-blue-400 pb-0.5 font-extrabold'
+                  : 'text-slate-300 hover:text-blue-400'
+              }`}
+            >
+              Organizer Dashboard
+            </Link>
+          )}
+          {user && user.role === 'admin' && (
+            <Link
+              to="/admin"
+              className={`transition-all ${
+                activeSection === 'admin'
+                  ? 'text-blue-400 border-b-2 border-blue-400 pb-0.5 font-extrabold'
+                  : 'text-slate-300 hover:text-blue-400'
+              }`}
+            >
+              Admin Dashboard
             </Link>
           )}
           <button
             onClick={() => handleScrollTo('contact')}
-            className="hover:text-blue-400 transition-colors uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer"
+            className={`transition-all uppercase font-bold text-xs bg-transparent border-none p-0 cursor-pointer ${
+              activeSection === 'contact'
+                ? 'text-blue-400 border-b-2 border-blue-400 pb-0.5'
+                : 'text-slate-300 hover:text-blue-400'
+            }`}
           >
             Contact
           </button>
