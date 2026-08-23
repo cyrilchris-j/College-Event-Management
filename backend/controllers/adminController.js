@@ -179,3 +179,105 @@ export async function getAdminDashboardStats(req, res) {
     });
   }
 }
+
+/**
+ * POST /api/admin/organizers
+ * Create a new organizer user account and profile
+ */
+export async function createOrganizerAccount(req, res) {
+  try {
+    const { email, password, clubName } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, error: 'Organizer email is required.' });
+    }
+
+    const cleanEmail = email.trim();
+    const tempPassword = password || 'Campus@123';
+
+    // 1. Create auth user with Supabase Admin API
+    let userId;
+    const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+      email: cleanEmail,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { role: 'organizer', full_name: clubName || 'Club Organizer' }
+    });
+
+    if (authErr) {
+      if (authErr.message.includes('already registered')) {
+        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+        const existing = usersData?.users?.find(u => u.email === cleanEmail);
+        userId = existing?.id;
+      } else {
+        return res.status(400).json({ success: false, error: authErr.message });
+      }
+    } else {
+      userId = authData.user.id;
+    }
+
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'Failed to resolve user ID.' });
+    }
+
+    // 2. Upsert profile in public.profiles table
+    const { data: profileData, error: profileErr } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: userId,
+        email: cleanEmail,
+        role: 'organizer',
+        student_id: null,
+      })
+      .select()
+      .single();
+
+    if (profileErr) {
+      return res.status(400).json({ success: false, error: profileErr.message });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Organizer created successfully.',
+      data: profileData,
+    });
+  } catch (err) {
+    console.error('[createOrganizerAccount Error]:', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Failed to create organizer account.',
+    });
+  }
+}
+
+/**
+ * DELETE /api/admin/organizers/:id
+ * Delete an organizer account and profile
+ */
+export async function deleteOrganizerAccount(req, res) {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Organizer ID required.' });
+    }
+
+    const { error: profileErr } = await supabaseAdmin.from('profiles').delete().eq('id', id);
+    if (profileErr) {
+      return res.status(400).json({ success: false, error: profileErr.message });
+    }
+
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(id);
+    } catch (_) {}
+
+    return res.status(200).json({
+      success: true,
+      message: 'Organizer account deleted successfully.',
+    });
+  } catch (err) {
+    console.error('[deleteOrganizerAccount Error]:', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Failed to delete organizer account.',
+    });
+  }
+}

@@ -162,21 +162,43 @@ export async function createOrganizerEvent(req, res) {
  */
 export async function updateOrganizerEvent(req, res) {
   try {
-    const organizerId = req.user.id;
-    const userRole = req.profile.role;
+    const organizerId = req.user?.id;
+    const userRole = req.profile?.role;
     const { id } = req.params;
 
-    const updates = req.body;
+    const allowedColumns = [
+      'title',
+      'short_description',
+      'description',
+      'category',
+      'event_start',
+      'event_end',
+      'venue',
+      'capacity',
+      'banner_url',
+      'registration_deadline',
+      'status',
+      'entry_fee',
+      'is_paid',
+      'gpay_number',
+      'gpay_upi_id',
+      'organizer_club'
+    ];
+
+    const sanitizedUpdates = {};
+    for (const key of Object.keys(req.body || {})) {
+      if (allowedColumns.includes(key) && req.body[key] !== undefined) {
+        sanitizedUpdates[key] = req.body[key];
+      }
+    }
+    sanitizedUpdates.updated_at = new Date().toISOString();
 
     let query = supabaseAdmin
       .from('events')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+      .update(sanitizedUpdates)
       .eq('id', id);
 
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && organizerId) {
       query = query.eq('organizer_id', organizerId);
     }
 
